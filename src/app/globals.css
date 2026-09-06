@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+/* =========================================================================
+   DESIGN TOKENS — transcribed from the Framer project
+   Colors are verbatim from the project's ColorStyles.
+   ========================================================================= */
+@theme {
+  --color-black: rgb(0, 0, 0);
+  --color-white: rgb(255, 255, 255);
+  --color-offwhite: rgb(244, 244, 244);
+  --color-lightblack: rgb(54, 54, 54);
+  --color-border: rgb(61, 61, 61);
+  --color-lightgrey: rgb(234, 234, 234);
+  --color-yellow: rgb(255, 221, 0);
+
+  /* Framer canvas breakpoints: Desktop 1440, Tablet 810, Phone 390 */
+  --breakpoint-tablet: 810px;
+  --breakpoint-desktop: 1200px;
+}
+
+:root {
+  --header-h: 48px;
+  /* Framer's default transition for variant changes */
+  --ease-framer: cubic-bezier(0.44, 0, 0.56, 1);
+}
+
+* {
+  border-color: var(--color-border);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--header-h);
+}
+
+body {
+  background-color: var(--color-white);
+  color: var(--color-black);
+  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* The site's forward-slash pattern ground, behind the page template. */
+.pattern-ground {
+  background-color: var(--color-offwhite);
+  background-image: url("/pattern.svg");
+  background-repeat: repeat;
+  background-size: 32px 32px;
+}
+
+/* =========================================================================
+   TYPOGRAPHY
+   Desktop values are verbatim from the Framer project's TextStyles.
+   Tablet / Phone steps are reconstructed (Framer's MCP exposes only one
+   size per style). Largest -> desktop, medium -> tablet, smallest -> phone.
+   ========================================================================= */
+
+.t-h1, .t-h2, .t-h3, .t-h4, .t-h6, .t-tagline,
+.t-body-s, .t-body, .t-body-l, .t-body-xl, .t-button {
+  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Heading 1 — Geist 500 / 6.38rem / 1em / -0.05em */
+.t-h1 {
+  font-weight: 500;
+  font-size: 3.25rem;
+  line-height: 1em;
+  letter-spacing: -0.05em;
+}
+/* Heading 2 — Geist 500 / 4.88rem / 1.15em / -0.03em */
+.t-h2 {
+  font-weight: 500;
+  font-size: 2.75rem;
+  line-height: 1.15em;
+  letter-spacing: -0.03em;
+}
+/* Heading 3 — Geist 500 / 2.1rem / 1.2em / -0.04em */
+.t-h3 {
+  font-weight: 500;
+  font-size: 1.6rem;
+  line-height: 1.2em;
+  letter-spacing: -0.04em;
+}
+/* Heading 4 — Geist 500 / 1.5rem / 1.3em / -0.04em */
+.t-h4 {
+  font-weight: 500;
+  font-size: 1.25rem;
+  line-height: 1.3em;
+  letter-spacing: -0.04em;
+}
+/* Heading 5 — Inter Medium / 1.25rem / 1.4em / -0.04em */
+.t-h5 {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 1.1rem;
+  line-height: 1.4em;
+  letter-spacing: -0.04em;
+}
+/* Heading 6 — Geist 500 / 1.15rem / 1.45em / -0.02em */
+.t-h6 {
+  font-weight: 500;
+  font-size: 1.05rem;
+  line-height: 1.45em;
+  letter-spacing: -0.02em;
+}
+/* Tagline — Geist 500 / 1rem / 1.5em / -0.03em / uppercase */
+.t-tagline {
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.5em;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+/* Body S — Geist 500 / 14px / 1.5em / -0.01em */
+.t-body-s {
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.5em;
+  letter-spacing: -0.01em;
+}
+/* Body Normal — Geist 500 / 1rem / 1.5em / -0.03em */
+.t-body {
+  font-weight: 500;
+  font-size: 0.9375rem;
+  line-height: 1.5em;
+  letter-spacing: -0.03em;
+}
+/* Body L — Geist 500 / 1.13rem / 1.35em / -0.03em */
+.t-body-l {
+  font-weight: 500;
+  font-size: 1rem;
+  line-height: 1.35em;
+  letter-spacing: -0.03em;
+}
+/* CMS Body XL — Geist 500 / 1.5rem / 1.3em / -0.04em */
+.t-body-xl {
+  font-weight: 500;
+  font-size: 1.25rem;
+  line-height: 1.3em;
+  letter-spacing: -0.04em;
+}
+/* Button — Geist 600 / 15px / 1.2em / -0.02em */
+.t-button {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2em;
+  letter-spacing: -0.02em;
+}
+
+/* ---- Tablet (>= 810px) : medium step ---- */
+@media (min-width: 810px) {
+  .t-h1 { font-size: 4.75rem; }
+  .t-h2 { font-size: 3.75rem; }
+  .t-h3 { font-size: 1.85rem; }
+  .t-h4 { font-size: 1.375rem; }
+  .t-h5 { font-size: 1.15rem; }
+  .t-h6 { font-size: 1.1rem; }
+  .t-tagline { font-size: 0.9375rem; }
+  .t-body-s { font-size: 13.5px; }
+  .t-body-l { font-size: 1.0625rem; }
+  .t-body-xl { font-size: 1.375rem; }
+}
+
+/* ---- Desktop (>= 1200px) : verbatim Framer values ---- */
+@media (min-width: 1200px) {
+  .t-h1 { font-size: 6.38rem; }
+  .t-h2 { font-size: 4.88rem; }
+  .t-h3 { font-size: 2.1rem; }
+  .t-h4 { font-size: 1.5rem; }
+  .t-h5 { font-size: 1.25rem; }
+  .t-h6 { font-size: 1.15rem; }
+  .t-tagline { font-size: 1rem; }
+  .t-body-s { font-size: 14px; }
+  .t-body { font-size: 1rem; }
+  .t-body-l { font-size: 1.13rem; }
+  .t-body-xl { font-size: 1.5rem; }
+  .t-button { font-size: 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+}
