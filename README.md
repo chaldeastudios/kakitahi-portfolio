@@ -7,7 +7,8 @@ sourced from the `chaldeastudios/kakitahi` repo.
 
 - **Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Motion 13
 - **Pages:** `/` (home), `/projects` (listing), `/projects/[slug]` (case
-  study detail, one per project), `/404`
+  study detail, one per project), `/journal` (listing), `/journal/[slug]`
+  (one per entry), `/404`
 
 ```bash
 npm install
@@ -21,10 +22,12 @@ npm run build
 src/
   app/globals.css          design tokens + the three-tier type scale
   app/projects/            /projects and /projects/[slug] (live Odoo data)
+  app/journal/             /journal and /journal/[slug] (live Odoo data)
   app/status/               /status — live Odoo connection diagnostics
   app/not-found.tsx        /404
   lib/content.ts           home page copy — services, testimonials, CTA, footer
   lib/projects.ts          the five project case studies (static fallback dataset)
+  lib/journal.ts           the six journal entries (static fallback dataset)
   lib/odoo/config.ts        env-based Odoo connection config
   lib/odoo/json2.ts         Odoo 19 JSON-2 API client (bearer token, no session)
   lib/odoo/content.ts       fetches + parses live services/case studies/journal
@@ -33,14 +36,17 @@ src/
   components/layout/       PageTemplate (header + footer + pattern ground)
   components/ui/           Button, TextLink, FooterLink, Logo, MenuButton,
                            AnimatedCounter, TimezoneClock, ImageSlideshow,
-                           Cursor, ProjectCard, ClientMarquee, LiquidGradient,
-                           ProjectVideos, Reveal (scroll/mount animations)
+                           Cursor, ProjectCard, JournalCard, ClientMarquee,
+                           FooterWordmark, Wordmark, ProjectVideos,
+                           Reveal (scroll/mount animations)
   components/sections/     Hero, About, Stats, Works, Services,
                            Testimonials, Cta, ProjectGrid, PageHero
 ```
 
 Home page section order matches the Framer Desktop frame exactly: Hero →
-About → Stats → Works → Services → Testimonials → CTA.
+About → Stats → Works → Services → Testimonials → CTA. The journal is
+deliberately not among them — it lives at `/journal`, reached from the
+header nav, and adds no section to the home page.
 
 ## Content
 
@@ -122,11 +128,12 @@ never writes to Odoo, so a single `ODOO_API_KEY` covers everything (no
 separate write-scoped credential the way kilele_coffee needs for its
 carts and forms).
 
-**What's wired.** The home page, `/projects`, and `/projects/[slug]` all
-fetch live: `getCaseStudies()`, `getServices()` in `src/lib/odoo/content.ts`.
+**What's wired.** The home page, `/projects`, `/projects/[slug]`,
+`/journal` and `/journal/[slug]` all fetch live: `getCaseStudies()`,
+`getServices()` and `getJournalPosts()` in `src/lib/odoo/content.ts`.
 Each call is wrapped in `withOdooFallback()` (`src/lib/odoo/safe.ts`),
-which falls back to the static datasets (`content.ts`/`projects.ts`) if
-the live fetch fails for any reason — not configured, network hiccup,
+which falls back to the static datasets (`content.ts`, `projects.ts`,
+`journal.ts`) if the live fetch fails for any reason — not configured, network hiccup,
 Odoo down — so a connection issue degrades to "shows the same content it
 always did" rather than a blank page. That fallback is a deliberate
 departure from the kilele_coffee reference, which is a throwaway test

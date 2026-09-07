@@ -5,6 +5,7 @@ import type { AnyNode } from "domhandler";
 import { ODOO_API_KEY } from "./config";
 import { callJson2 } from "./json2";
 import type { Project, ProjectImage } from "@/lib/projects";
+import type { JournalPost } from "@/lib/journal";
 
 /**
  * Odoo-backed content fetchers — read-only, via the JSON-2 client in
@@ -254,16 +255,6 @@ export async function getProducts(): Promise<OdooService[]> {
 }
 
 // ----------------------------------------------------------------- journal
-
-export type JournalPost = {
-  slug: string;
-  title: string;
-  category: string;
-  date: string;
-  postedBy: string;
-  intro: string;
-  sections: { heading: string; body: string }[];
-};
 
 function parseJournalPost(name: string, html: string): JournalPost {
   const $ = cheerio.load(html);

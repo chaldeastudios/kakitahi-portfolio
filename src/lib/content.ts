@@ -17,6 +17,7 @@ export const NAV_LINKS = [
   { label: "Services", href: "/#services", newTab: false },
   { label: "Projects", href: "/#works", newTab: false },
   { label: "Archive", href: "/archive", newTab: false },
+  { label: "Journal", href: "/journal", newTab: false },
   { label: "Testimonial", href: "/#testimonials", newTab: false },
   { label: "Contact", href: "/#contact", newTab: false },
 ] as const;
@@ -214,6 +215,7 @@ export const FOOTER = {
     { label: "Projects", href: "/#works", newTab: false },
     { label: "Services", href: "/#services", newTab: false },
     { label: "Archive", href: "/archive", newTab: false },
+    { label: "Journal", href: "/journal", newTab: false },
     { label: "Testimonials", href: "/#testimonials", newTab: false },
     { label: "Contact", href: "/#contact", newTab: false },
   ],
