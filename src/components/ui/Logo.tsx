@@ -1,35 +1,26 @@
 import Link from "next/link";
+import Wordmark from "./Wordmark";
 
 /**
  * Logo — Framer component "Logo" (ypmlYQd0q), Variant1 (K327xd1Ms).
  *
  * From a detached copy: backgroundColor /Black, height 48px, padding
- * 5px 10px, link "/", holding a single image 20px tall — a solid black
- * tile carrying the monogram.
+ * 5px 10px, link "/", holding a single image 20px tall with a
+ * width of "fit-image" — so the tile is as wide as the mark plus its
+ * padding.
  *
- * The source mark is a raster image, so the MCP cannot expose its glyphs
- * or metrics. The type below is set to land the mark at the same 20px
- * height inside the 48px tile, in the project's own Geist at 600.
+ * That image is the Kakitahi wordmark, drawn here as vector rather than
+ * raster: 20px tall, white on the black tile, at the mark's own ~5:1
+ * ratio (so ~100px wide, tile ~120px).
  */
 export default function Logo() {
   return (
     <Link
       href="/"
-      className="flex h-12 shrink-0 items-center justify-center bg-black px-[10px] py-[5px]"
+      className="flex h-12 shrink-0 items-center justify-center bg-black px-[10px] py-[5px] text-white"
       aria-label="Isaiah Kakitahi — home"
     >
-      <span
-        className="block text-white"
-        style={{
-          fontFamily: "var(--font-geist), system-ui, sans-serif",
-          fontWeight: 600,
-          fontSize: "26px",
-          lineHeight: "20px",
-          letterSpacing: "-0.04em",
-        }}
-      >
-        IK.
-      </span>
+      <Wordmark className="block h-5 w-auto" />
     </Link>
   );
 }

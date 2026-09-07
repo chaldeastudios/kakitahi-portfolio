@@ -1,5 +1,5 @@
 import FooterLink from "@/components/ui/FooterLink";
-import LiquidGradient from "@/components/ui/LiquidGradient";
+import FooterWordmark from "@/components/ui/FooterWordmark";
 import { Reveal } from "@/components/ui/Reveal";
 import { FOOTER } from "@/lib/content";
 
@@ -84,8 +84,8 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Stack (fwobZhATP) — 350px liquid gradient below the copyright */}
-      <LiquidGradient />
+      {/* Stack (fwobZhATP) — the full-width wordmark below the copyright */}
+      <FooterWordmark />
     </footer>
   );
 }
