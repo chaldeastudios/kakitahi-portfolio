@@ -62,14 +62,17 @@ export function QuoteIcon({ color = "black" }: { color?: string }) {
 }
 
 /** Clock face shown immediately before the timezone readout in the Header. */
-export function ClockIcon({ color = "currentColor" }: { color?: string }) {
+export function ClockIcon({ color = "rgb(0, 0, 0)" }: { color?: string }) {
+  // Drawn at native 14x14 rather than a 24 viewBox scaled down: at 14px a
+  // 1.5 stroke in a 24 box lands on 0.875 CSS px, which antialiases to a
+  // grey smudge instead of the black the design calls for.
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.5" />
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="7" cy="7" r="5.75" stroke={color} strokeWidth="1.25" />
       <path
-        d="M12 7v5l3 2"
+        d="M7 3.9V7.2l2 1.3"
         stroke={color}
-        strokeWidth="1.5"
+        strokeWidth="1.25"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

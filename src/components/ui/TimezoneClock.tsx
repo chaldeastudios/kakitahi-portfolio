@@ -90,8 +90,12 @@ export default function TimezoneClock({
           );
         }
         if (s.type === "ampm") {
+          // Natural width, not the original's fixed 2em cell: that cell is
+          // wider than "AM" and opened a phantom gap before "NYC", leaving
+          // the clock group looking unevenly spaced. AM and PM are the same
+          // width in Geist, so nothing reflows by dropping it.
           return (
-            <span key={i} className="inline-block text-left" style={{ width: "2em" }}>
+            <span key={i} className="inline-block text-left">
               {s.content}
             </span>
           );

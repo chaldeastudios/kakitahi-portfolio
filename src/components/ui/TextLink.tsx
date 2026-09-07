@@ -44,7 +44,10 @@ export default function TextLink({
   );
 
   const props = {
-    className: "relative inline-block text-black",
+    // flex, not inline-block: an inline-block anchor gets baseline
+    // leading below it, which made the wrapping RevealItem taller than the
+    // link and left the nav sitting 3.5px above the header's centre line.
+    className: "relative flex items-center text-black",
     onMouseEnter: () => setHovered(true),
     onMouseLeave: () => setHovered(false),
     onFocus: () => setHovered(true),
