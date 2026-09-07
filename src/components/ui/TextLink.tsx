@@ -7,14 +7,11 @@ import { useState } from "react";
 /**
  * TextLink — Framer component "Text-Link" (yPf1zNDj8).
  *
- * NOTE: this component's internals could not be read — Framer's MCP returns
- * "Node is not a text node" for it. The hover treatment below is
- * RECONSTRUCTED from the design system's own idiom: the Button (which did
- * read) swaps its arrow by stacking two identical copies inside an
- * overflow-clipped box and translating them together. This applies the same
- * idiom on the vertical axis, which is the standard Framer nav-link roll.
+ * Read from a detached copy: padding 4px, holding an overflow-clipped
+ * vertical stack with the label (Geist 500) and a second identical copy
+ * parked at bottom:-15px. Hovering rolls the stack up so the parked copy
+ * takes its place. There is no underline — the roll is the whole effect.
  */
-
 const EASE = [0.44, 0, 0.56, 1] as const;
 const DURATION = 0.4;
 
@@ -28,11 +25,10 @@ export default function TextLink({
   newTab?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
-
   const isExternal = newTab || /^(https?:|mailto:|tel:)/.test(href);
 
   const inner = (
-    <span className="relative block overflow-hidden">
+    <span className="relative block overflow-hidden p-1">
       <motion.span
         className="block"
         initial={false}
@@ -40,19 +36,10 @@ export default function TextLink({
         transition={{ duration: DURATION, ease: EASE }}
       >
         <span className="t-body-s block whitespace-nowrap">{label}</span>
-        <span className="t-body-s absolute top-full left-0 block whitespace-nowrap">
+        <span className="t-body-s absolute top-full left-1 block whitespace-nowrap">
           {label}
         </span>
       </motion.span>
-
-      {/* yellow underline wipe, left-anchored — same origin as the Button wipe */}
-      <motion.span
-        aria-hidden="true"
-        className="absolute bottom-0 left-0 block h-px bg-yellow"
-        initial={false}
-        animate={{ width: hovered ? "100%" : "0%" }}
-        transition={{ duration: DURATION, ease: EASE }}
-      />
     </span>
   );
 
@@ -66,12 +53,7 @@ export default function TextLink({
 
   if (isExternal) {
     return (
-      <a
-        href={href}
-        target={newTab ? "_blank" : undefined}
-        rel={newTab ? "noopener noreferrer" : undefined}
-        {...props}
-      >
+      <a href={href} target={newTab ? "_blank" : undefined} rel={newTab ? "noopener noreferrer" : undefined} {...props}>
         {inner}
       </a>
     );

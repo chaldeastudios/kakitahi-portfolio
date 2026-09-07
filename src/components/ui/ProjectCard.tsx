@@ -3,65 +3,82 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { useState } from "react";
+import { ArrowRight } from "./icons";
 
 /**
- * ProjectCard — Framer component "Project Card" (zUVpU454J), variant
- * eahsTMejN as instanced on the home page.
+ * ProjectCard — Framer component "Project Card" (zUVpU454J).
  *
- * Internals unreadable via MCP ("Node is not a text node"). The two bound
- * props ARE known from the page XML: BjgCsOPqE = title, dJZVG1RFy =
- * category. The card sits in the Works section's 2-column grid.
- *
- * RECONSTRUCTED using the project's established language: 1px /Border
- * hairlines, zero radius, a yellow marker, and the same left-anchored wipe
- * and image scale used elsewhere in the system.
+ * Read from a detached copy — this is NOT a yellow-wipe button:
+ *   root      backgroundColor /Off-white, border 1px /Black,
+ *             gap 16px, padding 32px, stack vertical, align center
+ *   Stack     border 1px /Border, overflow clip
+ *     Frame35 1fr x 550px — the project image
+ *   Frame38   horizontal, space-between, align center
+ *     Frame36 vertical, gap 5px — Title (Inter Medium) + Sub-title (Geist 500)
+ *     Frame37 horizontal, gap 4px — "View Project" + an 18x17 clipped frame
+ *             holding two arrows: a white one parked at left:-18px and a
+ *             black one visible at left:0, translating +18px together.
  */
+const EASE = [0.44, 0, 0.56, 1] as const;
+
 export default function ProjectCard({
   title,
-  category,
+  subtitle,
   image,
-  href = "/projects",
+  href,
 }: {
   title: string;
-  category: string;
+  subtitle: string;
   image?: string;
-  href?: string;
+  href: string;
 }) {
   const [hovered, setHovered] = useState(false);
-  const EASE = [0.44, 0, 0.56, 1] as const;
 
   return (
     <Link
       href={href}
-      className="group relative block border-r border-b border-border bg-white"
+      className="flex w-full flex-col items-center gap-4 border border-black bg-offwhite p-8"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-lightgrey">
+      {/* Image well */}
+      <div className="w-full overflow-hidden border border-border">
         <motion.div
-          className="absolute inset-0 bg-cover bg-center"
+          className="h-[300px] w-full bg-lightgrey bg-cover bg-center desktop:h-[550px]"
           style={image ? { backgroundImage: `url("${image}")` } : undefined}
           initial={false}
-          animate={{ scale: hovered ? 1.04 : 1 }}
+          animate={{ scale: hovered ? 1.03 : 1 }}
           transition={{ duration: 0.7, ease: EASE }}
         />
       </div>
 
-      <div className="relative flex items-center justify-between overflow-hidden border-t border-border p-6">
-        <motion.span
-          aria-hidden="true"
-          className="absolute inset-y-0 left-0 z-0 bg-yellow"
-          initial={false}
-          animate={{ width: hovered ? "100%" : "0%" }}
-          transition={{ duration: 0.5, ease: EASE }}
-        />
-        <span className="relative z-[1] flex items-center gap-[6px]">
-          <span className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
-          <span className="t-h4">{title}</span>
-        </span>
-        <span className="t-body-s relative z-[1]">{category}</span>
+      {/* Caption row */}
+      <div className="flex w-full items-center justify-between gap-8">
+        <div className="flex flex-col items-start gap-[5px]">
+          <span className="t-h5">{title}</span>
+          <span className="t-body">{subtitle}</span>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="t-body">View Project</span>
+          <span className="relative block h-[17px] w-[18px] overflow-hidden">
+            <motion.span
+              className="absolute inset-0 block"
+              initial={false}
+              animate={{ x: hovered ? 18 : 0 }}
+              transition={{ duration: 0.5, ease: EASE }}
+            >
+              <span className="absolute top-0 -left-[18px] block">
+                <ArrowRight color="rgb(255, 255, 255)" />
+              </span>
+              <span className="absolute top-0 left-0 block">
+                <ArrowRight color="rgb(0, 0, 0)" />
+              </span>
+            </motion.span>
+          </span>
+        </div>
       </div>
     </Link>
   );

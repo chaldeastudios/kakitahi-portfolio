@@ -1,6 +1,6 @@
 import Button from "@/components/ui/Button";
 import ImageSlideshow from "@/components/ui/ImageSlideshow";
-import { SERVICES, SLIDESHOW_IMAGES } from "@/lib/content";
+import { SERVICES } from "@/lib/content";
 
 /**
  * Services — Framer node "Services" (V5BQzUvm0). 2-column grid.
@@ -42,7 +42,7 @@ export default function Services() {
       <div className="flex w-full flex-col justify-center border-b border-border bg-black text-white">
         {SERVICES.items.map((item) => (
           <div
-            key={item.number}
+            key={item.title}
             className="flex w-full flex-col items-start gap-20 overflow-hidden border-b border-white px-6 py-10"
           >
             <div className="flex w-full flex-col items-start justify-between gap-10 desktop:flex-row desktop:gap-[81px]">
@@ -55,7 +55,7 @@ export default function Services() {
 
             <div className="flex w-full flex-col items-start justify-between gap-10 desktop:flex-row desktop:items-end desktop:gap-[81px]">
               <ImageSlideshow
-                images={[...SLIDESHOW_IMAGES]}
+                images={item.images}
                 className="h-[180px] w-full shrink-0 desktop:w-[240px]"
               />
               <div className="flex w-full flex-col items-start gap-2 desktop:max-w-[350px]">

@@ -38,9 +38,11 @@ export default function Cta() {
         <div className="absolute inset-x-0 bottom-0 h-1/4 border-y border-lightgrey" />
       </div>
 
-      {/* Card */}
-      <div className="relative z-[1] flex w-[85%] flex-col items-center justify-center tablet:w-1/2">
-        <div className="flex w-full flex-col items-start gap-8 overflow-hidden bg-offwhite px-6 py-8">
+      {/* Card — Stack D7rOjB76q is 50% x 50%, centred. The four locked
+          frames put rules at the 25% and 75% verticals and horizontals, so
+          the card's edges land exactly on those rules on all four sides. */}
+      <div className="relative z-[1] flex h-1/2 w-[85%] flex-col items-center justify-center tablet:w-1/2">
+        <div className="flex w-full flex-1 flex-col items-start gap-8 overflow-hidden bg-offwhite px-6 py-8">
           <div className="z-[1] flex items-center gap-[6px]">
             <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
             <p className="t-tagline">{CTA.tagline}</p>
@@ -58,6 +60,7 @@ export default function Cta() {
           fullWidth
         />
       </div>
+
     </section>
   );
 }

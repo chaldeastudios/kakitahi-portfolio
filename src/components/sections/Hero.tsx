@@ -1,5 +1,6 @@
 import Button from "@/components/ui/Button";
 import ImageSlideshow from "@/components/ui/ImageSlideshow";
+import ClientMarquee from "@/components/ui/ClientMarquee";
 import { HERO, SLIDESHOW_IMAGES } from "@/lib/content";
 
 /**
@@ -25,7 +26,7 @@ export default function Hero() {
         <div className="flex h-[380px] flex-col items-start justify-between border-r border-b border-border bg-white py-5 pl-5">
           <div className="flex w-full items-center justify-end px-5">
             <ImageSlideshow
-              images={[...SLIDESHOW_IMAGES]}
+              images={SLIDESHOW_IMAGES}
               className="h-[100px] w-[100px]"
             />
           </div>
@@ -58,17 +59,7 @@ export default function Hero() {
 
           <div className="flex w-full flex-col items-start gap-6">
             <p className="t-h6">{HERO.clientsLabel}</p>
-            <div className="flex w-full flex-wrap items-start gap-10 overflow-hidden">
-              {HERO.clients.map((c) => (
-                <span
-                  key={c.name}
-                  role="img"
-                  aria-label={c.name}
-                  className="block h-[49px] w-[85.465px] shrink-0 bg-contain bg-center bg-no-repeat opacity-80"
-                  style={{ backgroundImage: `url("${c.src}")` }}
-                />
-              ))}
-            </div>
+            <ClientMarquee logos={HERO.clients} />
           </div>
         </div>
       </div>

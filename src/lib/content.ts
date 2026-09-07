@@ -55,7 +55,33 @@ export const WORKS = {
     "I work with companies that treat design as a real function, not a final step. The ones that want someone who will tell them the truth about their product, stay through the hard calls, and care about what ships, not just what was designed.",
   cta: { label: "View All Projects", href: "/projects", newTab: false },
   slogan: "Quality work speaks for itself.",
-  projects: [{ title: "Vantage", category: "B2B Analytics Dashboard" }],
+  /** The four items of the Framer "Projects" CMS collection (vUcj716Ux). */
+  projects: [
+    {
+      slug: "vantage",
+      title: "Vantage",
+      subtitle: "B2B Analytics Dashboard",
+      image: "https://framerusercontent.com/images/zrUsOCnxIW0avr3aOCVa3baytA.jpg",
+    },
+    {
+      slug: "shelt",
+      title: "Shelt",
+      subtitle: "Rental Platform for Young Professionals",
+      image: "https://framerusercontent.com/images/eTna1UaDrgPZgTkwA6IoAPqmU.jpg",
+    },
+    {
+      slug: "contra",
+      title: "Contra",
+      subtitle: "Freelancer Onboarding Flow",
+      image: "https://framerusercontent.com/images/Rl4bpS0JCILZpMT28CwORQH7c.jpg",
+    },
+    {
+      slug: "folio",
+      title: "Folio",
+      subtitle: "Mobile Expense Tracking App",
+      image: "https://framerusercontent.com/images/OPLn2tCsAxUaYk4T6FK5sNlzoaQ.jpg",
+    },
+  ],
 } as const;
 
 export const SERVICES = {
@@ -63,12 +89,21 @@ export const SERVICES = {
   description:
     "I don't offer packages. I take on work that has a real problem at the center of it and stay until it's solved. I've learned that the problem on the brief is rarely the actual problem. Here's where I tend to start.",
   cta: { label: "Book A Call", href: "/#contact", newTab: false },
+  /** The four items of the Framer "Services" CMS collection (G_Idfj5qX).
+   *  images[] are that item's Image 1-4 — the four frames the
+   *  Image Slideshow component cycles through. */
   items: [
     {
       number: "01.",
       title: "Product Design",
       description:
         "I work from the first screen to the shipped product. Most designers come in after the decisions are made. I come in before, when there's still room to shape the problem, not just the solution. That's where the real work happens.",
+      images: [
+        "https://framerusercontent.com/images/zrUsOCnxIW0avr3aOCVa3baytA.jpg",
+        "https://framerusercontent.com/images/UMGv87ZShvEYBE1rFDuBu8ZsXYc.jpg",
+        "https://framerusercontent.com/images/MuGtfmYWYKQJg0WGHTtSP0ozqGA.jpg",
+        "https://framerusercontent.com/images/psiiOgGGv8HgvX1VNbzUieT4t1w.jpg",
+      ],
       list: [
         "User flows and journey mapping",
         "Information architecture",
@@ -76,10 +111,65 @@ export const SERVICES = {
         "Design systems that teams actually use",
       ],
     },
+    {
+      number: "02.",
+      title: "UX Research",
+      description:
+        "The team's assumptions are usually wrong. Not because they're bad at their jobs, but because they're too close to it. I run structured research that cuts through the debate and gets everyone looking at the same truth. The output is a decision, not a slide deck.",
+      images: [
+        "https://framerusercontent.com/images/N4eqh7sXVmNcrn4W6gROjWn6wc.jpg",
+        "https://framerusercontent.com/images/7yFubMBijoix785JFl5kgS6n0.jpg",
+        "https://framerusercontent.com/images/D9yRVfkwWs5R50QWM1HMoMApzD4.jpg",
+        "https://framerusercontent.com/images/zrUsOCnxIW0avr3aOCVa3baytA.jpg",
+      ],
+      list: [
+        "Moderated user testing",
+        "Interview synthesis",
+        "Usability audits",
+        "Jobs-to-be-done mapping",
+      ],
+    },
+    {
+      number: "03.",
+      title: "Design Advisory",
+      description:
+        "For founders who know they need design to be a real function but haven't built it yet. I help you hire right, set the standard early, and avoid the mistakes that are expensive to fix once the team is in place.",
+      images: [
+        "https://framerusercontent.com/images/MuGtfmYWYKQJg0WGHTtSP0ozqGA.jpg",
+        "https://framerusercontent.com/images/psiiOgGGv8HgvX1VNbzUieT4t1w.jpg",
+        "https://framerusercontent.com/images/N4eqh7sXVmNcrn4W6gROjWn6wc.jpg",
+        "https://framerusercontent.com/images/7yFubMBijoix785JFl5kgS6n0.jpg",
+      ],
+      list: [
+        "Hiring and team structure",
+        "Design critique and process",
+        "Tooling and workflow setup",
+        "Founder-level design thinking",
+      ],
+    },
+    {
+      number: "04.",
+      title: "Redesign",
+      description:
+        "Most redesigns fail because they start with the interface instead of the problem. I start with why the current product isn't working and build forward from there. The goal is never a new look. It's a product that finally does what it was supposed to.",
+      images: [
+        "https://framerusercontent.com/images/psiiOgGGv8HgvX1VNbzUieT4t1w.jpg",
+        "https://framerusercontent.com/images/N4eqh7sXVmNcrn4W6gROjWn6wc.jpg",
+        "https://framerusercontent.com/images/7yFubMBijoix785JFl5kgS6n0.jpg",
+        "https://framerusercontent.com/images/D9yRVfkwWs5R50QWM1HMoMApzD4.jpg",
+      ],
+      list: [
+        "Full product audits",
+        "User research and problem framing",
+        "End-to-end redesign",
+        "Handoff and implementation support",
+      ],
+    },
   ],
 } as const;
 
 export const TESTIMONIALS = {
+  tagline: "Testimonials",
   items: [
     {
       quote:
@@ -153,12 +243,14 @@ export const FOOTER = {
 } as const;
 
 /**
- * The Image Slideshow's four bound images are not exposed by the Framer MCP
- * (only the four variant frames are). The one photographic asset the home
- * page does expose is the CTA background, used here as a stand-in so the
- * slideshow's cycling behaviour is visible. Swap in the real four when
- * available.
+ * The Hero's Image Slideshow frames. The Framer component (D1hQeRBgs) is
+ * built as four variants it cycles through; the bound images are not
+ * exposed by the MCP, so these are the first four project images from the
+ * Projects CMS collection.
  */
 export const SLIDESHOW_IMAGES = [
-  "https://framerusercontent.com/images/z8oIkjRrZgpvPdmwICKinITmNw.jpg",
+  "https://framerusercontent.com/images/zrUsOCnxIW0avr3aOCVa3baytA.jpg",
+  "https://framerusercontent.com/images/eTna1UaDrgPZgTkwA6IoAPqmU.jpg",
+  "https://framerusercontent.com/images/Rl4bpS0JCILZpMT28CwORQH7c.jpg",
+  "https://framerusercontent.com/images/OPLn2tCsAxUaYk4T6FK5sNlzoaQ.jpg",
 ] as const;

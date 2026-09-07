@@ -186,3 +186,44 @@ body {
   }
   html { scroll-behavior: auto; }
 }
+
+/* =========================================================================
+   Client logo marquee (Hero > Clients)
+   The track holds two identical copies of the logo row, so translating by
+   -50% lands the seam on a matching frame and the wrap is invisible.
+   ========================================================================= */
+.marquee-track {
+  animation: marquee 32s linear infinite;
+  will-change: transform;
+}
+
+@keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Fade the row out against the yellow ground at both edges. */
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 88px,
+    #000 calc(100% - 88px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 88px,
+    #000 calc(100% - 88px),
+    transparent 100%
+  );
+}
+
+.marquee-mask:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+}

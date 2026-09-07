@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { useState } from "react";
+import { ArrowRight } from "./icons";
 
 /**
  * Button — transcribed from Framer component "Button" (gvRRv8Sb0).
@@ -21,17 +22,6 @@ import { useState } from "react";
  *                visible arrow exits right while the parked one enters.
  */
 
-const ARROW = (
-  <svg width="18" height="17" viewBox="0 0 18 17" fill="none" aria-hidden="true">
-    <path
-      d="M3 8.5h12M10.5 4l4.5 4.5-4.5 4.5"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="square"
-      strokeLinejoin="miter"
-    />
-  </svg>
-);
 
 export type ButtonProps = {
   label: string;
@@ -80,25 +70,25 @@ export default function Button({
         {label}
       </motion.span>
 
-      {/* Arrow frame — 18x17, overflow clip */}
-      <motion.span
-        className="relative z-[1] block h-[17px] w-[18px] shrink-0 overflow-hidden"
-        initial={false}
-        animate={{ color: hovered ? "rgb(0, 0, 0)" : "rgb(255, 255, 255)" }}
-        transition={{ duration: DURATION, ease: EASE }}
-      >
+      {/* Arrow frame — 18x17, overflow clip. The parked copy is black
+          (it lands on the yellow wipe); the visible copy is white (it sits
+          on the black ground). Both translate +18px together. */}
+      <span className="relative z-[1] block h-[17px] w-[18px] shrink-0 overflow-hidden">
         <motion.span
           className="absolute inset-0 block"
           initial={false}
           animate={{ x: hovered ? 18 : 0 }}
           transition={{ duration: DURATION, ease: EASE }}
         >
-          {/* parked off-canvas left (left:-18px) */}
-          <span className="absolute top-0 -left-[18px] block">{ARROW}</span>
-          {/* visible (left:0) */}
-          <span className="absolute top-0 left-0 block">{ARROW}</span>
+          <span className="absolute top-0 -left-[18px] block">
+            <ArrowRight color="rgb(0, 0, 0)" />
+          </span>
+          <span className="absolute top-0 left-0 block">
+            <ArrowRight color="rgb(255, 255, 255)" />
+          </span>
         </motion.span>
-      </motion.span>
+      </span>
+
     </>
   );
 

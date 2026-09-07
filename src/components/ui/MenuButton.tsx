@@ -5,12 +5,15 @@ import { motion } from "motion/react";
 /**
  * MenuButton — Framer component "Menu Button" (CoNamPj_s).
  *
- * Internals unreadable via MCP ("Node is not a text node"). RECONSTRUCTED as
- * a two-bar hamburger that crosses into an X, sized to the 48px header and
- * using the project's zero-radius, hard-edged language. It drives the
- * Header's "TabletClosed" variant (vi34TG9Km, 390px wide), which is the
- * collapsed nav the Framer project defines for the small breakpoint.
+ * Read from a detached copy: backgroundColor /Yellow, padding 14px,
+ * stack horizontal / space-between / center, containing
+ *   - an overflow-clipped stack with "Menu" (Geist 600) and, parked at
+ *     bottom:-18px, "Close" — a vertical roll between the two labels
+ *   - a 20x16 frame with two 16x2 /Black bars, one at top:5px and one at
+ *     bottom:5px
  */
+const EASE = [0.44, 0, 0.56, 1] as const;
+
 export default function MenuButton({
   open,
   onClick,
@@ -18,27 +21,39 @@ export default function MenuButton({
   open: boolean;
   onClick: () => void;
 }) {
-  const EASE = [0.44, 0, 0.56, 1] as const;
-
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={open ? "Close menu" : "Open menu"}
       aria-expanded={open}
-      className="relative flex h-12 w-12 shrink-0 items-center justify-center border-l border-border"
+      className="flex h-12 shrink-0 items-center justify-between gap-3 bg-yellow px-[14px] text-black"
     >
-      <span className="relative block h-[10px] w-[18px]">
+      {/* Menu / Close roll */}
+      <span className="relative block h-[18px] overflow-hidden">
         <motion.span
-          className="absolute left-0 block h-[1.5px] w-full bg-black"
+          className="block"
           initial={false}
-          animate={open ? { top: 4, rotate: 45 } : { top: 0, rotate: 0 }}
+          animate={{ y: open ? -18 : 0 }}
+          transition={{ duration: 0.35, ease: EASE }}
+        >
+          <span className="t-button block h-[18px] leading-[18px]">Menu</span>
+          <span className="t-button block h-[18px] leading-[18px]">Close</span>
+        </motion.span>
+      </span>
+
+      {/* 20x16 frame, two 16x2 bars */}
+      <span className="relative block h-4 w-5">
+        <motion.span
+          className="absolute left-1/2 block h-[2px] w-4 bg-black"
+          initial={false}
+          animate={open ? { top: 7, x: "-50%", rotate: 45 } : { top: 5, x: "-50%", rotate: 0 }}
           transition={{ duration: 0.35, ease: EASE }}
         />
         <motion.span
-          className="absolute left-0 block h-[1.5px] w-full bg-black"
+          className="absolute left-1/2 block h-[2px] w-4 bg-black"
           initial={false}
-          animate={open ? { top: 4, rotate: -45 } : { top: 9, rotate: 0 }}
+          animate={open ? { bottom: 7, x: "-50%", rotate: -45 } : { bottom: 5, x: "-50%", rotate: 0 }}
           transition={{ duration: 0.35, ease: EASE }}
         />
       </span>

@@ -1,6 +1,6 @@
 import Button from "@/components/ui/Button";
 import ProjectCard from "@/components/ui/ProjectCard";
-import { WORKS, SLIDESHOW_IMAGES } from "@/lib/content";
+import { WORKS } from "@/lib/content";
 
 /**
  * Works — Framer node "Works" (lZbF1iErZ). 2-column grid, rows fit.
@@ -46,11 +46,11 @@ export default function Works() {
       <div className="grid grid-cols-1 tablet:col-span-2 tablet:grid-cols-2">
         {WORKS.projects.map((p) => (
           <ProjectCard
-            key={p.title}
+            key={p.slug}
             title={p.title}
-            category={p.category}
-            image={SLIDESHOW_IMAGES[0]}
-            href="/projects"
+            subtitle={p.subtitle}
+            image={p.image}
+            href={`/projects/${p.slug}`}
           />
         ))}
       </div>

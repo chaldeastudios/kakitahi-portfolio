@@ -7,6 +7,7 @@ import TextLink from "@/components/ui/TextLink";
 import Button from "@/components/ui/Button";
 import MenuButton from "@/components/ui/MenuButton";
 import TimezoneClock from "@/components/ui/TimezoneClock";
+import { ClockIcon } from "@/components/ui/icons";
 import { NAV_LINKS } from "@/lib/content";
 
 /**
@@ -49,7 +50,7 @@ export default function Header() {
       <div className="relative flex h-full w-full items-center justify-between">
         {/* Left: logo + nav */}
         <div className="flex h-full items-center">
-          <Logo color="rgb(0, 0, 0)" />
+          <Logo />
           <nav className="ml-[45px] hidden items-center gap-5 desktop:flex">
             {NAV_LINKS.map((l) => (
               <TextLink key={l.label} label={l.label} href={l.href} newTab={l.newTab} />
@@ -66,6 +67,7 @@ export default function Header() {
         {/* Right: clock + contact button */}
         <div className="flex h-full items-center">
           <div className="mr-[60px] hidden items-center gap-1 tablet:flex">
+            <ClockIcon color="rgb(0, 0, 0)" />
             <TimezoneClock timezone="America/New_York" textColor="rgb(0, 0, 0)" />
             <span className="t-body-s">NYC</span>
           </div>
@@ -107,6 +109,7 @@ export default function Header() {
 
             <div className="mt-auto flex flex-col gap-4 p-6">
               <div className="flex items-center gap-1">
+                <ClockIcon color="rgb(0, 0, 0)" />
                 <TimezoneClock timezone="America/New_York" textColor="rgb(0, 0, 0)" />
                 <span className="t-body-s">NYC</span>
               </div>
