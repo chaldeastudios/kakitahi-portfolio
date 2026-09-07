@@ -58,12 +58,29 @@ export default function Services({
             key={item.title}
             className="flex w-full flex-col items-start gap-20 overflow-hidden border-b border-white px-6 py-10"
           >
-            <Reveal className="flex w-full flex-col items-start justify-between gap-10 desktop:flex-row desktop:gap-[81px]">
-              <div className="flex shrink-0 items-center gap-[6px]">
-                <span className="t-body-s">{item.number}</span>
-                <h3 className="t-h3">{item.title}</h3>
+            {/* Title beside description.
+
+                The title used to be shrink-0 with a flexible description,
+                so a long title ("Automation & AI-Enabled Systems") ran the
+                width of the row and squeezed the description into a narrow
+                ribbon. Now the description holds the 350px column the
+                Framer frame specifies and never shrinks, and the title is
+                capped at 420px so it wraps to two or three words a line
+                rather than growing without limit.
+
+                The pair only sits side by side from 1440px — the width of
+                the Framer canvas this was drawn on. Between 1200 and 1440
+                the right column is too narrow to carry a Heading 3 beside a
+                350px paragraph without starving one of them, so they stack
+                there instead, as they already do on tablet and phone. */}
+            <Reveal className="flex w-full flex-col items-start justify-between gap-10 min-[1440px]:flex-row min-[1440px]:gap-[81px]">
+              <div className="flex items-baseline gap-[6px] min-[1440px]:max-w-[420px]">
+                <span className="t-body-s shrink-0">{item.number}</span>
+                <h3 className="t-h3 text-balance">{item.title}</h3>
               </div>
-              <p className="t-body w-full desktop:max-w-[350px]">{item.description}</p>
+              <p className="t-body w-full min-[1440px]:w-[350px] min-[1440px]:shrink-0">
+                {item.description}
+              </p>
             </Reveal>
 
             <div className="flex w-full flex-col items-start justify-between gap-10 desktop:flex-row desktop:items-end desktop:gap-[81px]">

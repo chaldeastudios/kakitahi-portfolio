@@ -27,6 +27,14 @@ import { NAV_LINKS } from "@/lib/content";
  * Tablet (ieIDB0RBt) and TabletClosed (vi34TG9Km, 390px) variants exist in
  * the project but their children are not exposed by the MCP; the collapsed
  * nav below is reconstructed from those variants' frames.
+ *
+ * One departure from the Framer breakpoints: the full nav switches on at
+ * 1600px, not at the 1200px desktop breakpoint. The Framer header carried
+ * six links, which clear the centre divider at 1200; this site's nav has
+ * eight (Products and Journal are real pages now), and eight only stay left
+ * of that divider above ~1592px. Below that the links would cross the
+ * divider line, so the collapsed menu — which lists every one of them —
+ * takes over instead.
  */
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -53,7 +61,7 @@ export default function Header() {
         <div className="flex h-full items-center">
           <Logo />
           <RevealGroup
-            className="ml-[45px] hidden items-center gap-5 desktop:flex"
+            className="ml-[45px] hidden items-center gap-5 min-[1600px]:flex"
             stagger={0.06}
             onMount
           >
@@ -68,7 +76,7 @@ export default function Header() {
         {/* Divider — 1px, full height, centred, zIndex 2 */}
         <span
           aria-hidden="true"
-          className="absolute top-0 left-1/2 z-[2] hidden h-full w-px bg-border desktop:block"
+          className="absolute top-0 left-1/2 z-[2] hidden h-full w-px bg-border min-[1600px]:block"
         />
 
         {/* Right: clock + contact button */}
@@ -78,10 +86,10 @@ export default function Header() {
             <TimezoneClock timezone="America/New_York" textColor="rgb(0, 0, 0)" />
             <span className="t-body-s">NYC</span>
           </div>
-          <div className="hidden h-full desktop:block">
+          <div className="hidden h-full min-[1600px]:block">
             <Button label="Contact" href="/#contact" className="h-full min-w-[150px]" />
           </div>
-          <div className="desktop:hidden">
+          <div className="min-[1600px]:hidden">
             <MenuButton open={open} onClick={() => setOpen((v) => !v)} />
           </div>
         </div>
@@ -91,7 +99,7 @@ export default function Header() {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-x-0 top-12 bottom-0 z-40 flex flex-col border-t border-border bg-white desktop:hidden"
+            className="fixed inset-x-0 top-12 bottom-0 z-40 flex flex-col border-t border-border bg-white min-[1600px]:hidden"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}

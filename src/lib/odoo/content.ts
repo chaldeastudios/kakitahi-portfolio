@@ -6,6 +6,7 @@ import { ODOO_API_KEY } from "./config";
 import { callJson2 } from "./json2";
 import type { Project, ProjectImage } from "@/lib/projects";
 import type { JournalPost } from "@/lib/journal";
+import type { Product } from "@/lib/products";
 
 /**
  * Odoo-backed content fetchers — read-only, via the JSON-2 client in
@@ -35,6 +36,9 @@ import type { JournalPost } from "@/lib/journal";
  *   service   .ks-number · .ks-description>p · ul.ks-highlights>li
  *             .ks-stat > span.ks-stat-value + span.ks-stat-label
  *             .ks-images>img[src][alt]
+ *   product   the service shape, plus
+ *             ul.ks-meta > li.ks-kind|.ks-platform|.ks-price
+ *                          |.ks-link-label|.ks-live-link
  *   case study ul.ks-meta > li.ks-client|.ks-year|.ks-live-link|.ks-services
  *             .ks-overview · .ks-problem · .ks-solution · .ks-result
  *             .ks-testimonial > p… + footer>span.ks-name+span.ks-role
@@ -192,6 +196,12 @@ export type OdooService = {
   images: string[];
   list: string[];
   stat: { value: string; label: string } | null;
+  /** Product-only meta; empty strings on a service. See getProducts(). */
+  kind: string;
+  platform: string;
+  price: string;
+  linkLabel: string;
+  link: string;
 };
 
 function parseServiceDescription(html: string) {
@@ -213,7 +223,14 @@ function parseServiceDescription(html: string) {
   const value = text($(".ks-stat .ks-stat-value").first());
   const stat = value ? { value, label: text($(".ks-stat .ks-stat-label").first()) } : null;
 
-  return { number, description, images, list, stat };
+  // Only the products carry a ks-meta block; services parse these empty.
+  const kind = text($(".ks-meta .ks-kind").first());
+  const platform = text($(".ks-meta .ks-platform").first());
+  const price = text($(".ks-meta .ks-price").first());
+  const linkLabel = text($(".ks-meta .ks-link-label").first());
+  const link = text($(".ks-meta .ks-live-link").first());
+
+  return { number, description, images, list, stat, kind, platform, price, linkLabel, link };
 }
 
 async function getProductsByCategory(
@@ -249,9 +266,43 @@ export async function getServices(): Promise<OdooService[]> {
   return getProductsByCategory("getServices", SERVICES_CATEGORY_ID);
 }
 
-/** Shipped products (ReplyFrame) — distinct from client services. */
-export async function getProducts(): Promise<OdooService[]> {
-  return getProductsByCategory("getProducts", PRODUCTS_CATEGORY_ID);
+// --------------------------------------------------------------- products
+
+/**
+ * Shipped products — ReplyFrame and the Bernaum template — as distinct
+ * from the client services above. They share the product.template model
+ * and the same ks-* body, and add a ks-meta block: what kind of thing it
+ * is, where it lives, what it costs and where to get it.
+ *
+ * Price is parsed even though both products are free today, so the day one
+ * isn't, the page says so without a code change (and can point at Odoo's
+ * own shop instead of the marketplace).
+ */
+export async function getProducts(): Promise<Product[]> {
+  const parsed = await getProductsByCategory("getProducts", PRODUCTS_CATEGORY_ID);
+
+  const products = parsed.map((p) => ({
+    slug: slugify(p.title),
+    title: p.title,
+    kind: p.kind,
+    platform: p.platform,
+    price: p.price,
+    linkLabel: p.linkLabel || "View on the Marketplace",
+    link: p.link,
+    description: p.description,
+    highlights: p.list,
+    stat: p.stat,
+    images: p.images,
+  }));
+
+  // A product without somewhere to get it is not a product page.
+  assertParsed("getProducts", products.every((p) => p.link.length > 0));
+  return products;
+}
+
+export async function getProduct(slug: string): Promise<Product | undefined> {
+  const all = await getProducts();
+  return all.find((p) => p.slug === slug);
 }
 
 // ----------------------------------------------------------------- journal

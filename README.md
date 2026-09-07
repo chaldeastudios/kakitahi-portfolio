@@ -7,8 +7,9 @@ sourced from the `chaldeastudios/kakitahi` repo.
 
 - **Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Motion 13
 - **Pages:** `/` (home), `/projects` (listing), `/projects/[slug]` (case
-  study detail, one per project), `/journal` (listing), `/journal/[slug]`
-  (one per entry), `/404`
+  study detail, one per project), `/products` (listing), `/products/[slug]`
+  (one per product), `/journal` (listing), `/journal/[slug]` (one per
+  entry), `/404`
 
 ```bash
 npm install
@@ -23,11 +24,13 @@ src/
   app/globals.css          design tokens + the three-tier type scale
   app/projects/            /projects and /projects/[slug] (live Odoo data)
   app/journal/             /journal and /journal/[slug] (live Odoo data)
+  app/products/            /products and /products/[slug] (live Odoo data)
   app/status/               /status — live Odoo connection diagnostics
   app/not-found.tsx        /404
   lib/content.ts           home page copy — services, testimonials, CTA, footer
   lib/projects.ts          the five project case studies (static fallback dataset)
   lib/journal.ts           the six journal entries (static fallback dataset)
+  lib/products.ts          ReplyFrame + Bernaum (static fallback dataset)
   lib/odoo/config.ts        env-based Odoo connection config
   lib/odoo/json2.ts         Odoo 19 JSON-2 API client (bearer token, no session)
   lib/odoo/content.ts       fetches + parses live services/case studies/journal
@@ -36,9 +39,9 @@ src/
   components/layout/       PageTemplate (header + footer + pattern ground)
   components/ui/           Button, TextLink, FooterLink, Logo, MenuButton,
                            AnimatedCounter, TimezoneClock, ImageSlideshow,
-                           Cursor, ProjectCard, JournalCard, ClientMarquee,
-                           FooterWordmark, Wordmark, ProjectVideos,
-                           Reveal (scroll/mount animations)
+                           Cursor, ProjectCard, JournalCard, ProductCard,
+                           ClientMarquee, FooterWordmark, Wordmark,
+                           ProjectVideos, Reveal (scroll/mount animations)
   components/sections/     Hero, About, Stats, Works, Services,
                            Testimonials, Cta, ProjectGrid, PageHero
 ```
@@ -75,7 +78,7 @@ source of truth for services, project case studies, and journal entries:
 | Odoo model | Holds |
 |---|---|
 | `product.template` (categ `Chaldea Studios Services`, id 7) | The 4 real service offerings (ids 22–25) |
-| `product.template` (categ `Chaldea Studios Products`, id 8) | ReplyFrame (id 26) |
+| `product.template` (categ `Chaldea Studios Products`, id 8) | ReplyFrame (id 26), Bernaum (id 28) |
 | `blog.post` in blog `Portfolio` (id 2), tagged `Case Study` (tag id 1) | The 5 project case studies (ids 1–5) |
 | `blog.post` in blog `Our blog` (id 1), tagged `Journal` (tag id 2) | The 6 real journal entries (ids 6–11) |
 
@@ -99,6 +102,7 @@ Every record carries a predictable HTML structure that
 | Service / product | `.ks-number` · `.ks-description>p` · `ul.ks-highlights>li` · `.ks-stat > span.ks-stat-value + span.ks-stat-label` · `.ks-images>img[src][alt]` |
 | Case study | `ul.ks-meta > li.ks-client\|.ks-year\|.ks-live-link\|.ks-services` · `.ks-overview` · `.ks-problem` · `.ks-solution` · `.ks-result` · `.ks-testimonial > p… + footer > span.ks-name + span.ks-role` · `.ks-images` |
 | Journal entry | `ul.ks-meta > li.ks-category\|.ks-date\|.ks-author` · `.ks-intro` · repeated `.ks-body > h3 + p…` |
+| Product | the service shape, plus `ul.ks-meta > li.ks-kind\|.ks-platform\|.ks-price\|.ks-link-label\|.ks-live-link` |
 
 `.ks-number`, `.ks-stat` and `.ks-images` are optional; the description is
 not.
@@ -129,11 +133,13 @@ separate write-scoped credential the way kilele_coffee needs for its
 carts and forms).
 
 **What's wired.** The home page, `/projects`, `/projects/[slug]`,
-`/journal` and `/journal/[slug]` all fetch live: `getCaseStudies()`,
-`getServices()` and `getJournalPosts()` in `src/lib/odoo/content.ts`.
+`/products`, `/products/[slug]`, `/journal` and `/journal/[slug]` all fetch
+live: `getCaseStudies()`, `getServices()`, `getProducts()` and
+`getJournalPosts()` in `src/lib/odoo/content.ts`.
 Each call is wrapped in `withOdooFallback()` (`src/lib/odoo/safe.ts`),
 which falls back to the static datasets (`content.ts`, `projects.ts`,
-`journal.ts`) if the live fetch fails for any reason — not configured, network hiccup,
+`journal.ts`, `products.ts`) if the live fetch fails for any reason — not
+configured, network hiccup,
 Odoo down — so a connection issue degrades to "shows the same content it
 always did" rather than a blank page. That fallback is a deliberate
 departure from the kilele_coffee reference, which is a throwaway test
@@ -169,6 +175,20 @@ at build time). That's the right default for content meant to update the
 moment it's edited in Odoo; if that per-request Odoo round trip ever
 becomes a real latency or cost concern, moving to ISR (`revalidate: N`
 instead of `no-store`) is a small, isolated change in `json2.ts`.
+
+### Products, and the shop we are not using yet
+
+ReplyFrame and Bernaum are both free on the Framer Marketplace, so each
+product page ends in a direct link out rather than a checkout. That is
+deliberate: Odoo's own eCommerce module can take payment and deliver a
+digital download, but wiring a shop to sell two free things would be
+machinery with nothing to do.
+
+The records are already shaped for the day that changes. Every product
+carries a `.ks-price` (reading "Free" today) and a `.ks-live-link`; when a
+product stops being free, the price says so and the CTA points at the Odoo
+shop instead of the marketplace. That is a change of destination, not a
+rebuild.
 
 ## Framer transcription notes
 
