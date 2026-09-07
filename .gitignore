@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python (the Odoo addon under odoo/addons)
+__pycache__/
+*.py[cod]
