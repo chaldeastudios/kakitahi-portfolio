@@ -1,4 +1,5 @@
 import FooterLink from "@/components/ui/FooterLink";
+import LiquidGradient from "@/components/ui/LiquidGradient";
 import { FOOTER } from "@/lib/content";
 
 /**
@@ -15,6 +16,8 @@ import { FOOTER } from "@/lib/content";
  *     Frame86 : padding 14px 24px — copyright (Body S) -> https://fazal.site
  *     Frame85 : border-left 1px, padding 14px 24px, justify end, gap 19px —
  *               Privacy Policy + Terms & Conditions (variant ZtBkierFB)
+ *   Stack     : h 350px, backgroundColor /White, overflow clip — the
+ *               animated liquid gradient that closes the footer
  */
 export default function Footer() {
   return (
@@ -77,6 +80,9 @@ export default function Footer() {
           ))}
         </div>
       </div>
+
+      {/* Stack (fwobZhATP) — 350px liquid gradient below the copyright */}
+      <LiquidGradient />
     </footer>
   );
 }

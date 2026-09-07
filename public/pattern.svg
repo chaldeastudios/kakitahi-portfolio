@@ -1,3 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <path d="M7 19 L17 5" stroke="rgb(61,61,61)" stroke-opacity="0.22" stroke-width="1.15" stroke-linecap="butt" fill="none"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1440" height="1080" fill="none"><path fill="#fff" d="M0 0h1440v1080H0z"/><path fill="url(#a)" d="M0 0h1440v1080H0z"/><defs><pattern id="a" width="1" height="1" patternTransform="matrix(5.61335 0 0 20.7268 717.951 535.533)" patternUnits="userSpaceOnUse" preserveAspectRatio="none" viewBox="0 0 14.772 54.544"><use xlink:href="#b" transform="translate(-14.772)"/><path id="b" fill="#EFEFEF" d="M5.953 0h5v23h-5z" transform="rotate(15 5.953 0)"/><use xlink:href="#b" transform="translate(-7.386 27.272)"/><use xlink:href="#b" transform="translate(7.386 27.272)"/></pattern></defs></svg>
