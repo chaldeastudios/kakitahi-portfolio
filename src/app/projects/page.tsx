@@ -4,6 +4,9 @@ import PageHero from "@/components/sections/PageHero";
 import ProjectGrid from "@/components/sections/ProjectGrid";
 import Testimonials from "@/components/sections/Testimonials";
 import Cta from "@/components/sections/Cta";
+import { getCaseStudies } from "@/lib/odoo/content";
+import { withOdooFallback } from "@/lib/odoo/safe";
+import { PROJECTS } from "@/lib/projects";
 
 /**
  * /projects — Framer page ohMtTqn_g, Desktop frame jtvXP_V8A.
@@ -21,12 +24,14 @@ export const metadata: Metadata = {
     "Selected 2025 client work: KariKari, Southside Akwana Records, Veridian Tech Co., Kaktus Limited and Karitas Karisimbi Foundation.",
 };
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const projects = await withOdooFallback("getCaseStudies", getCaseStudies, PROJECTS);
+
   return (
     <PageTemplate>
       <div className="flex w-full flex-col items-center gap-0 p-0">
         <PageHero title="Projects" />
-        <ProjectGrid className="w-full" />
+        <ProjectGrid projects={projects} className="w-full" />
         <div className="w-full">
           <Testimonials />
         </div>

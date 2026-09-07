@@ -1,26 +1,27 @@
 import "server-only";
+import { cache } from "react";
 import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
-import { odooSearchRead } from "./odoo";
-import type { Project, ProjectImage } from "./projects";
+import { ODOO_API_KEY } from "./config";
+import { callJson2 } from "./json2";
+import type { Project, ProjectImage } from "@/lib/projects";
 
 /**
- * Odoo-backed content fetchers.
- *
- * NOT WIRED UP YET — see README.md "Odoo integration". Nothing in the app
- * calls these yet; src/lib/content.ts and src/lib/projects.ts remain the
- * live data source until a working Odoo connection is confirmed.
+ * Odoo-backed content fetchers — read-only, via the JSON-2 client in
+ * ./json2.ts. Called fresh on every request; nothing here is cached.
  *
  * Every blog.post / product.template record this reads was written with a
  * predictable HTML shape: a sequence of <div data-section="..."> blocks
- * carrying the same fields the static datasets use, so the parsing here is
- * a straight extraction rather than free-text scraping. That shape is also
- * exactly what a person editing the record in Odoo's own rich-text editor
- * sees and can safely add to.
+ * carrying the same fields the static datasets (src/lib/content.ts,
+ * src/lib/projects.ts) use, so the parsing here is a straight extraction
+ * rather than free-text scraping. That shape is also exactly what a
+ * person editing the record in Odoo's own rich-text editor sees and can
+ * safely add to.
  */
 
 const CASE_STUDY_TAG_ID = 1; // blog.tag "Case Study"
 const PORTFOLIO_BLOG_ID = 2; // blog.blog "Portfolio"
+const JOURNAL_BLOG_ID = 1; // blog.blog "Our blog"
 const SERVICES_CATEGORY_ID = 7; // product.category "Chaldea Studios Services"
 const PRODUCTS_CATEGORY_ID = 8; // product.category "Chaldea Studios Products"
 
@@ -36,7 +37,17 @@ function paragraphs($section: cheerio.Cheerio<AnyNode>): string {
   return parts.join("\n\n");
 }
 
-/** Parse one project case study's `content` HTML into a Project record. */
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+// --------------------------------------------------------------- projects
+
 function parseCaseStudy(
   html: string
 ): Omit<Project, "slug" | "title" | "subtitle" | "video" | "youtubeUrl"> {
@@ -75,23 +86,30 @@ function parseCaseStudy(
   };
 }
 
-/** All published project case studies, newest first. */
-export async function getCaseStudies(): Promise<Project[]> {
-  const posts = await odooSearchRead<{
-    id: number;
-    name: string;
-    subtitle: string;
-    content: string;
-    website_url: string;
-  }>(
+/**
+ * All published project case studies, in Odoo id order.
+ *
+ * Wrapped in React's cache() so a single page render that calls this from
+ * both generateMetadata and the page component (the detail page does)
+ * shares one Odoo round trip instead of two. Only dedupes within a single
+ * request — every new page view still fetches live.
+ */
+export const getCaseStudies = cache(async (): Promise<Project[]> => {
+  const posts = await callJson2<
+    Array<{ id: number; name: string; subtitle: string; content: string }>
+  >(
     "blog.post",
-    [
-      ["blog_id", "=", PORTFOLIO_BLOG_ID],
-      ["tag_ids", "in", [CASE_STUDY_TAG_ID]],
-      ["is_published", "=", true],
-    ],
-    ["name", "subtitle", "content", "website_url"],
-    { order: "id asc" }
+    "search_read",
+    {
+      domain: [
+        ["blog_id", "=", PORTFOLIO_BLOG_ID],
+        ["tag_ids", "in", [CASE_STUDY_TAG_ID]],
+        ["is_published", "=", true],
+      ],
+      fields: ["id", "name", "subtitle", "content"],
+      order: "id asc",
+    },
+    ODOO_API_KEY
   );
 
   return posts.map((post) => {
@@ -106,7 +124,7 @@ export async function getCaseStudies(): Promise<Project[]> {
       ...parsed,
     };
   });
-}
+});
 
 export async function getCaseStudy(slug: string): Promise<Project | undefined> {
   const all = await getCaseStudies();
@@ -131,25 +149,22 @@ export type OdooService = {
   stat: { value: string; label: string } | null;
 };
 
-function parseServiceDescription(html: string): {
-  number: string;
-  description: string;
-  images: string[];
-  list: string[];
-  stat: { value: string; label: string } | null;
-} {
+function parseServiceDescription(html: string) {
   const $ = cheerio.load(html);
   const number = text($('[data-section="number"]').first());
   const description = paragraphs($('[data-section="description"]').first());
+
   const list: string[] = [];
   $('[data-section="highlights"] li').each((_, li) => {
     list.push(text(cheerio.load(li).root()));
   });
+
   const images: string[] = [];
   $('[data-section="images"] img').each((_, img) => {
     const src = $(img).attr("src");
     if (src) images.push(src);
   });
+
   const statEl = $('[data-section="stat"]').first();
   const stat =
     statEl.length && statEl.attr("data-value")
@@ -159,17 +174,16 @@ function parseServiceDescription(html: string): {
   return { number, description, images, list, stat };
 }
 
-/** The four real service offerings, in their Odoo sequence. */
-export async function getServices(): Promise<OdooService[]> {
-  const products = await odooSearchRead<{
-    id: number;
-    name: string;
-    description: string;
-  }>(
+async function getProductsByCategory(categoryId: number): Promise<OdooService[]> {
+  const products = await callJson2<Array<{ id: number; name: string; description: string }>>(
     "product.template",
-    [["categ_id", "=", SERVICES_CATEGORY_ID]],
-    ["name", "description"],
-    { order: "id asc" }
+    "search_read",
+    {
+      domain: [["categ_id", "=", categoryId]],
+      fields: ["id", "name", "description"],
+      order: "id asc",
+    },
+    ODOO_API_KEY
   );
 
   return products.map((p) => ({
@@ -179,24 +193,14 @@ export async function getServices(): Promise<OdooService[]> {
   }));
 }
 
-/** The ReplyFrame product record (the "Products" line, distinct from services). */
-export async function getProducts(): Promise<OdooService[]> {
-  const products = await odooSearchRead<{
-    id: number;
-    name: string;
-    description: string;
-  }>(
-    "product.template",
-    [["categ_id", "=", PRODUCTS_CATEGORY_ID]],
-    ["name", "description"],
-    { order: "id asc" }
-  );
+/** The four real service offerings, in their Odoo sequence. */
+export async function getServices(): Promise<OdooService[]> {
+  return getProductsByCategory(SERVICES_CATEGORY_ID);
+}
 
-  return products.map((p) => ({
-    id: p.id,
-    title: p.name,
-    ...parseServiceDescription(p.description),
-  }));
+/** Shipped products (ReplyFrame) — distinct from client services. */
+export async function getProducts(): Promise<OdooService[]> {
+  return getProductsByCategory(PRODUCTS_CATEGORY_ID);
 }
 
 // ----------------------------------------------------------------- journal
@@ -238,14 +242,18 @@ function parseJournalPost(name: string, html: string): JournalPost {
 
 /** All published journal entries, oldest first (matches the source order). */
 export async function getJournalPosts(): Promise<JournalPost[]> {
-  const posts = await odooSearchRead<{ id: number; name: string; content: string }>(
+  const posts = await callJson2<Array<{ id: number; name: string; content: string }>>(
     "blog.post",
-    [
-      ["blog_id", "=", 1], // "Our blog"
-      ["is_published", "=", true],
-    ],
-    ["name", "content"],
-    { order: "post_date asc" }
+    "search_read",
+    {
+      domain: [
+        ["blog_id", "=", JOURNAL_BLOG_ID],
+        ["is_published", "=", true],
+      ],
+      fields: ["id", "name", "content"],
+      order: "post_date asc",
+    },
+    ODOO_API_KEY
   );
 
   return posts.map((p) => parseJournalPost(p.name, p.content));
@@ -254,13 +262,4 @@ export async function getJournalPosts(): Promise<JournalPost[]> {
 export async function getJournalPost(slug: string): Promise<JournalPost | undefined> {
   const all = await getJournalPosts();
   return all.find((p) => p.slug === slug);
-}
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }

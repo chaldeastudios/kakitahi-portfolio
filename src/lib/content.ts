@@ -69,6 +69,16 @@ export const WORKS = {
 
 const IMG = "https://framerusercontent.com/images/";
 
+/** Shape shared by the static SERVICES.items entries and Odoo's OdooService
+ *  fetcher (src/lib/odoo/content.ts), so Services.tsx can render either. */
+export type ServiceItem = {
+  number: string;
+  title: string;
+  description: string;
+  images: readonly string[];
+  list: readonly string[];
+};
+
 export const SERVICES = {
   heading: "Services",
   description:

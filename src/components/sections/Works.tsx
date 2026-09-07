@@ -2,6 +2,7 @@ import Button from "@/components/ui/Button";
 import { Reveal } from "@/components/ui/Reveal";
 import ProjectGrid from "./ProjectGrid";
 import { WORKS } from "@/lib/content";
+import { PROJECTS, type Project } from "@/lib/projects";
 
 /**
  * Works — Framer node "Works" (lZbF1iErZ). 2-column grid, rows fit.
@@ -15,8 +16,16 @@ import { WORKS } from "@/lib/content";
  *    Slogan (PYbt14H_B)      bg /Yellow, border 1px /Border, padding 24px,
  *                            justify end -> Heading 5
  *  Projects (SPDqi3Js_)  2x2 grid, gridColumnSpan 2 -> Project Cards
+ *
+ * `projects` defaults to the static PROJECTS dataset but is meant to be
+ * supplied live from Odoo (src/lib/odoo/content.ts getCaseStudies()) by
+ * the page — see app/page.tsx.
  */
-export default function Works() {
+export default function Works({
+  projects = PROJECTS,
+}: {
+  projects?: Project[];
+} = {}) {
   return (
     <section id="works" className="grid w-full grid-cols-1 tablet:grid-cols-2">
       {/* Heading */}
@@ -50,7 +59,7 @@ export default function Works() {
       </div>
 
       {/* Projects — spans both columns */}
-      <ProjectGrid className="tablet:col-span-2" />
+      <ProjectGrid projects={projects} className="tablet:col-span-2" />
 
     </section>
   );

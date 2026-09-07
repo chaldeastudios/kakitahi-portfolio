@@ -7,7 +7,9 @@ import Cta from "@/components/sections/Cta";
 import ProjectVideos from "@/components/ui/ProjectVideos";
 import { Reveal } from "@/components/ui/Reveal";
 import { ArrowUpRight } from "@/components/ui/icons";
-import { PROJECTS, getProject, getNextProject } from "@/lib/projects";
+import { PROJECTS, getProject as getStaticProject, getNextProject as getStaticNextProject } from "@/lib/projects";
+import { getCaseStudies } from "@/lib/odoo/content";
+import { withOdooFallback } from "@/lib/odoo/safe";
 
 /**
  * /projects/[slug] — Framer page yYdS2aTdj, Desktop frame ifiBoypAh.
@@ -41,8 +43,18 @@ import { PROJECTS, getProject, getNextProject } from "@/lib/projects";
  *     Cta     (laNB0WumW) 100vh, the shared closing panel
  */
 
-export function generateStaticParams() {
-  return PROJECTS.map((p) => ({ slug: p.slug }));
+/**
+ * No generateStaticParams here: the set of valid slugs is now live Odoo
+ * content, not something fully knowable at build time. A no-store fetch
+ * inside getCaseStudies() makes this route dynamic anyway — see the
+ * README "Odoo integration" trade-off note. Unknown slugs still 404 via
+ * notFound() below, whichever source (Odoo or the static fallback)
+ * resolved.
+ */
+
+/** The live project list for this request, falling back to PROJECTS. */
+async function loadProjects() {
+  return withOdooFallback("getCaseStudies", getCaseStudies, PROJECTS);
 }
 
 export async function generateMetadata({
@@ -51,7 +63,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const project = getProject(slug);
+  const projects = await loadProjects();
+  const project = projects.find((p) => p.slug === slug) ?? getStaticProject(slug);
   if (!project) return { title: "Project not found — Isaiah Kakitahi" };
   return {
     title: `${project.title} — Isaiah Kakitahi`,
@@ -110,10 +123,15 @@ export default async function ProjectPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const project = getProject(slug);
+  const projects = await loadProjects();
+  const project = projects.find((p) => p.slug === slug) ?? getStaticProject(slug);
   if (!project) notFound();
 
-  const next = getNextProject(slug);
+  const projectIndex = projects.findIndex((p) => p.slug === slug);
+  const next =
+    projectIndex >= 0
+      ? projects[(projectIndex + 1) % projects.length]
+      : getStaticNextProject(slug);
   const [img1, img2, img3, img4, img5, img6, img7] = project.images;
 
   return (

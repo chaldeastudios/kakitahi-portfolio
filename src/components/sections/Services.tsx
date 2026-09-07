@@ -1,7 +1,7 @@
 import Button from "@/components/ui/Button";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import ImageSlideshow from "@/components/ui/ImageSlideshow";
-import { SERVICES } from "@/lib/content";
+import { SERVICES, type ServiceItem } from "@/lib/content";
 
 /**
  * Services — Framer node "Services" (V5BQzUvm0). 2-column grid.
@@ -20,8 +20,16 @@ import { SERVICES } from "@/lib/content";
  *      ImagesList (t062PuIO2) horizontal, gap 81px, space-between, align end
  *        ImageSlideshow 240x180 + List (maxWidth 350px, gap 8px)
  *          each row: 10x10 /Yellow square + label (Geist 500)
+ *
+ * `items` defaults to the static SERVICES.items but is meant to be
+ * supplied live from Odoo (src/lib/odoo/content.ts getServices()) by the
+ * page — see app/page.tsx.
  */
-export default function Services() {
+export default function Services({
+  items = SERVICES.items,
+}: {
+  items?: readonly ServiceItem[];
+} = {}) {
   return (
     <section id="services" className="grid w-full grid-cols-1 tablet:grid-cols-2">
       {/* Heading */}
@@ -45,7 +53,7 @@ export default function Services() {
 
       {/* Services list */}
       <div className="flex w-full flex-col justify-center border-b border-border bg-black text-white">
-        {SERVICES.items.map((item) => (
+        {items.map((item) => (
           <div
             key={item.title}
             className="flex w-full flex-col items-start gap-20 overflow-hidden border-b border-white px-6 py-10"

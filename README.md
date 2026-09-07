@@ -20,13 +20,16 @@ npm run build
 ```
 src/
   app/globals.css          design tokens + the three-tier type scale
-  app/projects/            /projects and /projects/[slug]
+  app/projects/            /projects and /projects/[slug] (live Odoo data)
+  app/status/               /status — live Odoo connection diagnostics
   app/not-found.tsx        /404
   lib/content.ts           home page copy — services, testimonials, CTA, footer
-  lib/projects.ts          the five project case studies (static dataset)
-  lib/odoo.ts               Odoo JSON-RPC client — see "Odoo integration" below
-  lib/odoo-content.ts       parses Odoo records back into the same shapes
-                            content.ts/projects.ts export — not wired up yet
+  lib/projects.ts          the five project case studies (static fallback dataset)
+  lib/odoo/config.ts        env-based Odoo connection config
+  lib/odoo/json2.ts         Odoo 19 JSON-2 API client (bearer token, no session)
+  lib/odoo/content.ts       fetches + parses live services/case studies/journal
+  lib/odoo/safe.ts          wraps a live fetch with a static fallback
+  lib/odoo/status.ts        the checks /status runs
   components/layout/       PageTemplate (header + footer + pattern ground)
   components/ui/           Button, TextLink, FooterLink, Logo, MenuButton,
                            AnimatedCounter, TimezoneClock, ImageSlideshow,
@@ -57,10 +60,11 @@ calls made when porting it here:
 
 ## Odoo integration
 
-**Status: data layer built and populated; frontend wiring not done.**
+**Status: wired and live-ready. Falls back to static data until the
+connection is configured; then works with no further code changes.**
 
-The user's real Odoo instance (`chaldeastudios` Kakitahi, Odoo 19) now
-holds the same content as the source of truth going forward:
+The user's real Odoo instance (`chaldeastudios` Kakitahi, Odoo 19) is the
+source of truth for services, project case studies, and journal entries:
 
 | Odoo model | Holds |
 |---|---|
@@ -70,52 +74,60 @@ holds the same content as the source of truth going forward:
 | `blog.post` in blog `Our blog` (id 1), tagged `Journal` (tag id 2) | The 6 real journal entries |
 
 Every record was written with a predictable HTML shape — a sequence of
-`<div data-section="...">` blocks carrying the same fields the static
-datasets use (overview/problem/solution/result/testimonial/images for
-case studies; description/highlights/stat/images for services; intro and
-headed body sections for journal posts). That shape is both what a person
-editing the record in Odoo's own rich-text editor sees, and what
-`src/lib/odoo-content.ts` parses back out — see that file for the exact
-extraction.
+`<div data-section="...">` blocks — which is both what a person editing
+the record in Odoo's own rich-text editor sees, and what
+`src/lib/odoo/content.ts` parses back out.
 
-**What's built:** `src/lib/odoo.ts` (a server-only JSON-RPC client —
-`common.login` then `object.execute_kw`, reading `ODOO_URL`, `ODOO_DB`,
-`ODOO_LOGIN`, `ODOO_API_KEY` from the environment, see `.env.example`) and
-`src/lib/odoo-content.ts` (typed fetchers — `getCaseStudies`,
-`getCaseStudy`, `getNextCaseStudy`, `getServices`, `getProducts`,
-`getJournalPosts`, `getJournalPost` — that call it and parse the HTML back
-into `Project`/`OdooService`/`JournalPost` shapes). Both typecheck and the
-build is unaffected by their presence.
+**How it connects.** Odoo 19's External JSON-2 API
+(`POST /json/2/<model>/<method>`, `Authorization: bearer <api_key>`, no
+session/login step) — the same pattern proven live in production by
+`chaldeastudios/kilele_coffee` (a working Next.js + Odoo 19 integration
+on this same Vercel account). `src/lib/odoo/json2.ts` and `config.ts` are
+near-verbatim ports of that reference's client. Read-only only: this site
+never writes to Odoo, so a single `ODOO_API_KEY` covers everything (no
+separate write-scoped credential the way kilele_coffee needs for its
+carts and forms).
 
-**What's not done, and why:** no page or component calls this layer yet.
-`content.ts` and `projects.ts` are still what every page actually reads.
-Two things are missing to finish the wiring, both outside what this
-session can supply on its own:
+**What's wired.** The home page, `/projects`, and `/projects/[slug]` all
+fetch live: `getCaseStudies()`, `getServices()` in `src/lib/odoo/content.ts`.
+Each call is wrapped in `withOdooFallback()` (`src/lib/odoo/safe.ts`),
+which falls back to the static datasets (`content.ts`/`projects.ts`) if
+the live fetch fails for any reason — not configured, network hiccup,
+Odoo down — so a connection issue degrades to "shows the same content it
+always did" rather than a blank page. That fallback is a deliberate
+departure from the kilele_coffee reference, which is a throwaway test
+whose whole point is proving the live connection and so shows raw errors
+with no fallback at all; this is a real site that already worked from
+static data.
 
-1. **Connection credentials.** A live Odoo API key (Settings → your
-   profile → Account Security → New API Key), plus the instance's base
-   URL and database name. A dedicated read-only integration user is
-   preferable to using a personal/admin login for this, but that's the
-   account owner's call, not something to create unasked in a live
-   business instance.
-2. **Reachability.** This was built in a sandboxed session whose network
-   policy blocks outbound access to arbitrary domains — confirmed
-   directly against `framerusercontent.com` and a Framer preview host
-   during this same build. Whether the sandbox (or wherever this app is
-   eventually hosted) can reach the Odoo instance at all has not been
-   verified, and can't be, without first knowing the URL.
+**To go live:** set three env vars, either in `.env.local` for `npm run
+dev` or as Vercel Project → Settings → Environment Variables for the
+deployed site (this project is already on Vercel, auto-deploying from
+`main`):
 
-There's also a real architecture change bundled into finishing this: the
-site currently renders as a static export. Reading Odoo per-request (or
-per-build) needs a Node runtime — Vercel or similar — rather than pure
-static hosting. Worth deciding deliberately rather than as a side effect
-of wiring in the data.
+```
+ODOO_URL=https://<the instance>
+ODOO_DB=<database name>
+ODOO_API_KEY=<a read-only API key — Odoo Settings → your profile →
+              Account Security → New API Key>
+```
 
-Once the two items above are available, finishing the wiring is
-mechanical: swap the imports in `Works.tsx`, `Services.tsx`, `Hero.tsx`
-(client marquee stays static — see above), and both `/projects` routes
-from the static modules to the `odoo-content` fetchers, passed down from
-the page (a Server Component) as props to whatever needs them.
+Then visit `/status` — a live diagnostic page (not part of the Framer
+design; same checks as kilele_coffee's own `/status`) that pings Odoo and
+confirms the key can read each of the three model sets, with no fallback
+of its own, so a real misconfiguration shows up there directly rather
+than being silently masked. On Vercel, a newly added env var takes effect
+on the next deploy, not the currently running one.
+
+**Trade-off worth knowing:** `callJson2` uses `cache: "no-store"`, so once
+a real connection succeeds, Next.js takes the home page and `/projects`
+out of static prerendering and serves them dynamically per request (they
+currently build as fully static — see the build output, `○` vs `ƒ` — and
+will flip to `ƒ` on the first deploy where Odoo is actually reachable
+at build time). That's the right default for content meant to update the
+moment it's edited in Odoo; if that per-request Odoo round trip ever
+becomes a real latency or cost concern, moving to ISR (`revalidate: N`
+instead of `no-store`) is a small, isolated change in `json2.ts`.
 
 ## Framer transcription notes
 
