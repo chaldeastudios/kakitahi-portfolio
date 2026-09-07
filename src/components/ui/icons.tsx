@@ -76,3 +76,18 @@ export function ClockIcon({ color = "currentColor" }: { color?: string }) {
     </svg>
   );
 }
+
+/** Arrow-up-right, 18x19, used by the project detail page's Live Link row. */
+export function ArrowUpRight({ color = "currentColor" }: { color?: string }) {
+  return (
+    <svg width="18" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M7 17 17 7M7 7h10v10"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
