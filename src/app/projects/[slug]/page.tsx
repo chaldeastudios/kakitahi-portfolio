@@ -117,7 +117,7 @@ export default async function ProjectPage({
   const [img1, img2, img3, img4, img5, img6, img7] = project.images;
 
   return (
-    <PageTemplate ground="white">
+    <PageTemplate>
       <div className="flex w-full flex-col items-center gap-40 px-5 py-[140px]">
         {/* Hero */}
         <PageHero title={project.title}>

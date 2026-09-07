@@ -24,9 +24,12 @@ export default function PageHero({
 }) {
   return (
     <section className="grid w-full grid-cols-1 tablet:grid-cols-2">
-      {/* Left */}
-      <div className="z-[1] overflow-hidden tablet:sticky tablet:top-12 tablet:self-start">
-        <div className="flex h-[380px] w-full flex-col items-start justify-end gap-[10px] border-r border-b border-border bg-white py-5 pl-5">
+      {/* Left — the design nests two sticky levels: the column fills the
+          grid row (height 1fr) and the 380px panel sticks inside it at
+          top 48px, so the title stays pinned while the right column
+          scrolls past. */}
+      <div className="z-[1] tablet:h-full">
+        <div className="flex h-[380px] w-full flex-col items-start justify-end gap-[10px] border-r border-b border-border bg-white py-5 pl-5 tablet:sticky tablet:top-12">
           <Reveal
             className="flex w-[82%] items-center justify-center overflow-hidden"
             y={32}

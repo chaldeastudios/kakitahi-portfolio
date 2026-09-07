@@ -34,7 +34,7 @@ export default function NotFound() {
           y={32}
           duration={0.85}
         >
-          <h1 className="t-h1 w-full">404</h1>
+          <h1 className="t-h1 w-full text-center">404</h1>
         </Reveal>
         <Reveal delay={0.12} y={16}>
           <Button label="Go to Homepage" href="/" />

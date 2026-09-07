@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function ProjectsPage() {
   return (
-    <PageTemplate ground="white">
+    <PageTemplate>
       <div className="flex w-full flex-col items-center gap-10 px-5 py-40">
         <PageHero title="Projects" />
         <ProjectGrid className="w-full" />
