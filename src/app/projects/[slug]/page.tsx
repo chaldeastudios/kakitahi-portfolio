@@ -118,7 +118,7 @@ export default async function ProjectPage({
 
   return (
     <PageTemplate>
-      <div className="flex w-full flex-col items-center gap-40 px-5 py-[140px]">
+      <div className="flex w-full flex-col items-center gap-0 p-0">
         {/* Hero */}
         <PageHero title={project.title}>
           {/* Overview */}
