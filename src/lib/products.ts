@@ -5,12 +5,19 @@
  * both are free, so each product page ends in a direct link out rather
  * than a checkout.
  *
+ * Purchase rules are per-product and come from Odoo, not from code: a
+ * product may be sellable or not (Odoo's own "Can be Sold"), may cap how
+ * many a cart can hold, and may be limited to one order per customer. The
+ * defaults suit a digital good — one per cart, one per customer, and no
+ * inventory, because these products are non-storable services in Odoo and
+ * there is nothing to run out of. A product added to Odoo tomorrow picks
+ * all of this up without a deploy.
+ *
  * On paid products later: Odoo already carries a price on every one of
  * these records, and its own eCommerce module can take payment and deliver
  * a digital download. Nothing here forecloses that — the day a product
- * stops being free, `price` stops reading "Free" and the CTA points at the
- * Odoo shop instead of the marketplace. Until then a direct link is the
- * honest and much simpler thing.
+ * stops being free, `price` stops reading "Free" and the checkout grows a
+ * payment step rather than placing a silent zero-price order.
  *
  * Odoo is the source of truth (product.template, category "Chaldea Studios
  * Products", id 8); this is the static fallback, kept identical to what
@@ -53,6 +60,12 @@ export type Product = {
   linkLabel: string;
   /** The external URL the marketplace CTA opens. */
   link: string;
+  /** Odoo's "Can be Sold" — false means link-only, no Add to Cart. */
+  purchasable: boolean;
+  /** Most a cart may hold of this. Digital goods default to 1. */
+  maxQuantity: number;
+  /** Refuse a second order of this by the same email. Defaults to true. */
+  oncePerCustomer: boolean;
   /** Paragraphs, joined with a blank line. */
   description: string;
   highlights: string[];
@@ -80,6 +93,9 @@ export const PRODUCTS: Product[] = [
     tags: ["Utilities", "CMS", "Integrations"],
     linkLabel: "Open Plugin",
     link: "https://www.framer.com/marketplace/plugins/replyframe/",
+    purchasable: true,
+    maxQuantity: 1,
+    oncePerCustomer: true,
     description:
       "ReplyFrame is a powerful, embeddable comment and review system built specifically for Framer websites. Add discussions, collect feedback, and display social proof — without subscriptions, paywalls, or limits.\n\nDesigned for creators, founders, and indie builders, ReplyFrame makes it effortless to bring engagement to any page.",
     highlights: [
@@ -143,6 +159,9 @@ export const PRODUCTS: Product[] = [
     tags: ["Portfolio"],
     linkLabel: "Remix for Free",
     link: "https://www.framer.com/marketplace/templates/bernaum/",
+    purchasable: true,
+    maxQuantity: 1,
+    oncePerCustomer: true,
     description:
       "Whether you're an artist, designer, or creative professional, this template gives you the tools to present your work beautifully and manage your content with ease. From smooth animations to a powerful CMS, every feature is built to enhance your portfolio's visual impact while keeping navigation intuitive for visitors.\n\nThis template also features the free ReplyFrame Comments & Reviews plugin for engaging blog posts and ecommerce pages.",
     highlights: [

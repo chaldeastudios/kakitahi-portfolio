@@ -8,8 +8,8 @@ sourced from the `chaldeastudios/kakitahi` repo.
 - **Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Motion 13
 - **Pages:** `/` (home), `/projects` (listing), `/projects/[slug]` (case
   study detail, one per project), `/products` (listing), `/products/[slug]`
-  (one per product), `/products/[slug]/checkout` (the three-step order
-  flow), `/journal` (listing), `/journal/[slug]` (one per entry), `/404`
+  (one per product), `/cart`, `/checkout` (the three-step order flow),
+  `/journal` (listing), `/journal/[slug]` (one per entry), `/404`
 
 ```bash
 npm install
@@ -24,10 +24,13 @@ src/
   app/globals.css          design tokens + the three-tier type scale
   app/projects/            /projects and /projects/[slug] (live Odoo data)
   app/journal/             /journal and /journal/[slug] (live Odoo data)
-  app/products/            /products, /products/[slug] and its checkout
+  app/products/            /products and /products/[slug]
+  app/cart/                /cart — what's in the cart, resolved live
+  app/checkout/            /checkout — the three-step order flow + action
   app/api/odoo/media/      proxies Odoo binaries (product images)
   app/api/download/        signed, expiring download of a product's file
-  lib/checkout/orders.ts   creates the partner + confirmed sale.order
+  lib/cart/CartProvider    the cart: slugs + quantities, in localStorage
+  lib/checkout/orders.ts   partner, purchase history, confirmed sale.order
   lib/checkout/signing.ts  HMAC for the download links
   app/status/               /status — live Odoo connection diagnostics
   app/not-found.tsx        /404
@@ -107,7 +110,7 @@ Every record carries a predictable HTML structure that
 | Service / product | `.ks-number` · `.ks-description>p` · `ul.ks-highlights>li` · `.ks-stat > span.ks-stat-value + span.ks-stat-label` · `.ks-images>img[src][alt]` |
 | Case study | `ul.ks-meta > li.ks-client\|.ks-year\|.ks-live-link\|.ks-services` · `.ks-overview` · `.ks-problem` · `.ks-solution` · `.ks-result` · `.ks-testimonial > p… + footer > span.ks-name + span.ks-role` · `.ks-images` |
 | Journal entry | `ul.ks-meta > li.ks-category\|.ks-date\|.ks-author` · `.ks-intro` · repeated `.ks-body > h3 + p…` |
-| Product | the service shape, plus repeated `.ks-body > h3 + p… + ul>li`, and `ul.ks-meta > li.ks-kind\|.ks-tagline\|.ks-platform\|.ks-price\|.ks-license\|.ks-published\|.ks-updated\|.ks-tags\|.ks-link-label\|.ks-live-link`. Its gallery and deliverable are **not** in the description — see below. |
+| Product | the service shape, plus repeated `.ks-body > h3 + p… + ul>li`, and `ul.ks-meta > li.ks-kind\|.ks-tagline\|.ks-platform\|.ks-price\|.ks-license\|.ks-published\|.ks-updated\|.ks-tags\|.ks-link-label\|.ks-live-link`, plus the optional purchase rules `li.ks-max-quantity` and `li.ks-once-per-customer`. Its gallery and deliverable are **not** in the description — see below. |
 
 `.ks-number`, `.ks-stat` and `.ks-images` are optional; the description is
 not.
@@ -211,28 +214,67 @@ read key and streams the bytes, against a strict allow-list of
 model/field pairs — a proxy that will fetch any binary of any model is an
 open door to every attachment in the database.
 
-**The checkout.** Both products are free, so there is nothing to pay and no
-payment step. What the flow collects is *who* — so the order is a record
-rather than an anonymous download, and so those people can be reached
-later. `/products/[slug]/checkout` runs three steps (details → review →
-confirmation) and on confirmation writes to Odoo:
+**The cart.** `/cart` holds only slugs and quantities, in `localStorage`.
+Prices, titles, images and every purchase rule stay in Odoo and are
+resolved server-side each time the cart is rendered or submitted — so a
+cart can never carry a stale price, and a product withdrawn in Odoo simply
+stops resolving and drops out rather than reaching a checkout that would
+fail. There is no Odoo session and no server-side cart: these are free
+digital goods with no stock to reserve, so a server cart would protect
+nothing while leaving orphaned draft orders behind every browser that
+wandered off. The order is created once, at checkout.
+
+**Purchase rules come from Odoo, per product — nothing is named in code:**
+
+| Rule | Where it lives | Default |
+|---|---|---|
+| Can this be ordered at all? | Odoo's own **Can be Sold** on the product | — |
+| How many may a cart hold? | `li.ks-max-quantity` in `ks-meta` | 1 |
+| One order per customer? | `li.ks-once-per-customer` (`no` to disable) | yes |
+| Stock | not consulted — these are non-storable **service** products | — |
+
+So a product added to Odoo tomorrow is in the shop, in the cart and
+checkout-able with no deploy, and it inherits the digital-goods defaults:
+one per cart, one per customer, no inventory.
+
+**"One per customer" is enforced against Odoo, not the browser.** At
+checkout the action asks what this partner has already been given
+(`sale.order.line` where `order_id.partner_id` is them and
+`order_id.state` is `sale`/`done`) and drops those lines, telling the
+person why on the confirmation. Clearing storage or switching device
+doesn't get a second copy, because the identity that matters is the email
+and the record is Odoo's. Cancelling an order in Odoo does release the
+limit — a cancelled order is not a sale — which is the sensible way to
+re-issue something to someone.
+
+**The checkout.** `/checkout` runs three steps (details → review →
+confirmation) for whatever the cart contains, and on confirmation writes:
 
 1. `res.partner` — reused if that email already exists, so a repeat
    customer stays one contact.
-2. `sale.order` — origin naming this site, one line at 0.00.
+2. `sale.order` — origin naming this site, one line per cart line at 0.00.
 3. `action_confirm()` — a draft order is a quotation and would not reach
    Sales reporting or any mailing automation, so this step is what makes a
    free download count as a sale.
 
-Marketing consent is explicit, per order, and recorded on the order.
+Marketing consent is explicit, per order, and recorded on the order. The
+confirmation hands over the goods immediately, per product: the marketplace
+link for everything, plus a signed, expiring download link for products
+that have a file attached (`app/api/download`). The attachment is private
+in Odoo, so the route fetches it with the server key and decides access
+from an HMAC over the order reference, the attachment id and an expiry.
+Nothing is stored, and the link cannot be edited to reach a different
+attachment without breaking its signature.
 
-The confirmation hands over the goods immediately: the marketplace link,
-plus — where the product has a file attached — a signed, expiring download
-link (`app/api/download`). The attachment is private in Odoo, so the route
-fetches it with the server key and decides access from an HMAC over the
-order reference, the attachment id and an expiry. Nothing is stored, and
-the link cannot be edited to reach a different attachment without breaking
-its signature.
+**Why not drive Odoo's own `website_sale` shop**, the way
+`chaldeastudios/kilele_coffee` does? That reference scrapes `/shop/cart`,
+posts to `/shop/address/submit`, and runs the Demo payment provider through
+`/shop/payment` — which needs the products published on the Odoo website, a
+delivery carrier, and a payment provider configured. For free digital goods
+with no address and no payment, that machinery is all cost and no benefit,
+and it would put Odoo's own markup between this site and its design. The
+credential pattern and the JSON-2 client here are ported from that
+reference; the checkout shape deliberately isn't.
 
 **When a product stops being free**, the server action refuses the order
 outright rather than quietly writing a zero-price sale — that line in

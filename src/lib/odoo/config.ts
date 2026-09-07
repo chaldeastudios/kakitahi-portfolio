@@ -38,12 +38,27 @@ export const ODOO_API_KEY = process.env.ODOO_API_KEY ?? "";
 export const ODOO_WRITE_API_KEY =
   process.env.ODOO_WRITE_API_KEY ?? process.env.ODOO_API_KEY ?? "";
 
-/** Signs download links. Not an Odoo credential. */
-export const CHECKOUT_SECRET = process.env.CHECKOUT_SECRET ?? "";
+/**
+ * Signs download links. Not an Odoo credential, and not something the
+ * deployment has to be given separately: absent an explicit value it
+ * derives from the write key, which is already a long server-only secret.
+ * Setting CHECKOUT_SECRET explicitly is still better — it lets the Odoo key
+ * be rotated without invalidating every outstanding download link, and vice
+ * versa — but the checkout works with just the three Odoo variables.
+ */
+export const CHECKOUT_SECRET =
+  process.env.CHECKOUT_SECRET ||
+  (process.env.ODOO_WRITE_API_KEY ?? process.env.ODOO_API_KEY ?? "");
 
 export const isOdooConfigured = Boolean(ODOO_URL && ODOO_DB && ODOO_API_KEY);
 
-/** The checkout additionally needs somewhere to write and a signing secret. */
+/**
+ * The checkout needs a key that can write. With a single admin key set as
+ * ODOO_API_KEY that is already satisfied — ODOO_WRITE_API_KEY falls back to
+ * it, and CHECKOUT_SECRET derives from it — so a working read setup is a
+ * working checkout, and a separate write key is a hardening step rather
+ * than a prerequisite.
+ */
 export const isCheckoutConfigured = Boolean(
   isOdooConfigured && ODOO_WRITE_API_KEY && CHECKOUT_SECRET
 );

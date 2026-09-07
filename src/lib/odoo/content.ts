@@ -37,6 +37,7 @@ import type { Product } from "@/lib/products";
  *             .ks-stat > span.ks-stat-value + span.ks-stat-label
  *             .ks-images>img[src][alt]
  *   product   the service shape, plus repeated .ks-body > h3 + p… + ul>li,
+ *             optional li.ks-max-quantity and li.ks-once-per-customer,
  *             and ul.ks-meta > li.ks-kind|.ks-tagline|.ks-platform|.ks-price
  *                              |.ks-license|.ks-published|.ks-updated
  *                              |.ks-tags|.ks-link-label|.ks-live-link
@@ -211,6 +212,8 @@ export type OdooService = {
   tags: string[];
   linkLabel: string;
   link: string;
+  maxQuantity: number;
+  oncePerCustomer: boolean;
   sections: Array<{ heading: string; body: string; items: string[] }>;
 };
 
@@ -248,6 +251,17 @@ function parseServiceDescription(html: string) {
   const linkLabel = text($(".ks-meta .ks-link-label").first());
   const link = text($(".ks-meta .ks-live-link").first());
 
+  // Purchase rules, with defaults that suit a digital good: you can hold
+  // one, and you only ever need one. A product overrides either in Odoo by
+  // adding <li class="ks-max-quantity">3</li> or
+  // <li class="ks-once-per-customer">no</li> to its ks-meta list. Nothing
+  // here is per-product in code, so a product added to Odoo tomorrow gets
+  // the same rules without a deploy.
+  const rawMaxQty = Number(text($(".ks-meta .ks-max-quantity").first()));
+  const maxQuantity = Number.isInteger(rawMaxQty) && rawMaxQty > 0 ? rawMaxQty : 1;
+  const oncePerCustomer =
+    text($(".ks-meta .ks-once-per-customer").first()).toLowerCase() !== "no";
+
   // Long-form listing copy, same .ks-body shape the journal entries use:
   // a heading, prose, and optionally a list.
   const sections: Array<{ heading: string; body: string; items: string[] }> = [];
@@ -280,6 +294,8 @@ function parseServiceDescription(html: string) {
     tags,
     linkLabel,
     link,
+    maxQuantity,
+    oncePerCustomer,
     sections,
   };
 }
@@ -348,12 +364,12 @@ export const getProducts = cache(async (): Promise<Product[]> => {
   // product.product, not a template), the eCommerce Media gallery, and any
   // file attached to the product — the thing a buyer is handed.
   const [variants, media, attachments] = await Promise.all([
-    callJson2<Array<{ id: number; product_tmpl_id: [number, string] }>>(
+    callJson2<Array<{ id: number; product_tmpl_id: [number, string]; sale_ok: boolean }>>(
       "product.product",
       "search_read",
       {
         domain: [["product_tmpl_id", "in", templateIds]],
-        fields: ["id", "product_tmpl_id"],
+        fields: ["id", "product_tmpl_id", "sale_ok"],
       },
       ODOO_API_KEY
     ),
@@ -408,6 +424,12 @@ export const getProducts = cache(async (): Promise<Product[]> => {
       tags: p.tags,
       linkLabel: p.linkLabel || "View on the Marketplace",
       link: p.link,
+      // Odoo's own "Can be Sold" decides whether a product can be ordered
+      // here at all — untick it there and the product still has a page and
+      // a marketplace link, but no Add to Cart.
+      purchasable: Boolean(variant?.sale_ok) && variant!.id > 0,
+      maxQuantity: p.maxQuantity,
+      oncePerCustomer: p.oncePerCustomer,
       description: p.description,
       highlights: p.list,
       stat: p.stat,

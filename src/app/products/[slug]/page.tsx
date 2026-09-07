@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import PageTemplate from "@/components/layout/PageTemplate";
 import PageHero from "@/components/sections/PageHero";
 import Cta from "@/components/sections/Cta";
-import Button from "@/components/ui/Button";
+import AddToCart from "@/components/cart/AddToCart";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { ArrowUpRight } from "@/components/ui/icons";
 import { getProducts } from "@/lib/odoo/content";
@@ -17,12 +17,15 @@ import { PRODUCTS, getProduct, getNextProduct, type Product } from "@/lib/produc
  * meta panel, then the gallery, the listing, and "Next Product".
  *
  * A case study's meta panel ends in "Live Link" pointing at the client's
- * site. A product's ends in the price and a Get It button, because the
- * thing you want from this page is the thing itself. That button goes to
- * the checkout rather than straight out to the marketplace: the product is
- * free either way, but an order means it is on the record and the person
- * can be told when it changes. The marketplace link stays alongside it for
- * anyone who would rather just go.
+ * site. A product's ends in the price and Add to Cart, because the thing
+ * you want from this page is the thing itself. Adding it to the cart rather
+ * than linking straight out is what makes it an order: the product is free
+ * either way, but an order is on the record and the person can be told when
+ * it changes. The marketplace link stays alongside for anyone who would
+ * rather just go.
+ *
+ * Whether the button appears at all, and how many a cart may hold, come
+ * from the product record in Odoo — see src/lib/products.ts.
  *
  * Imagery is Odoo's own eCommerce Media, served through /api/odoo/media.
  */
@@ -108,7 +111,11 @@ export default async function ProductPage({
             </div>
 
             <div className="flex flex-wrap items-center gap-4">
-              <Button label="Get It Free" href={`/products/${product.slug}/checkout`} />
+              <AddToCart
+                slug={product.slug}
+                maxQuantity={product.maxQuantity}
+                purchasable={product.purchasable}
+              />
               <a
                 href={product.link}
                 target="_blank"
@@ -179,7 +186,11 @@ export default async function ProductPage({
               </Reveal>
             )}
 
-            <Button label="Get It Free" href={`/products/${product.slug}/checkout`} />
+            <AddToCart
+              slug={product.slug}
+              maxQuantity={product.maxQuantity}
+              purchasable={product.purchasable}
+            />
           </div>
         </section>
 

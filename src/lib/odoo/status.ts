@@ -151,9 +151,9 @@ async function checkProductMedia(): Promise<CheckResult> {
  * This says so out loud.
  */
 async function checkCheckout(): Promise<CheckResult> {
-  const name = "Checkout can write orders (ODOO_WRITE_API_KEY + CHECKOUT_SECRET)";
+  const name = "Checkout can write orders (sale.order + res.partner)";
   const missing = [
-    !ODOO_WRITE_API_KEY && "ODOO_WRITE_API_KEY",
+    !ODOO_WRITE_API_KEY && "a write-capable API key",
     !CHECKOUT_SECRET && "CHECKOUT_SECRET",
   ].filter(Boolean);
 
@@ -175,7 +175,9 @@ async function checkCheckout(): Promise<CheckResult> {
       name,
       ok: true,
       detail: `OK — write key valid, sale.order reachable (${rows.length} sampled)${
-        shared ? ". Note: same key as ODOO_API_KEY; a separate write-scoped key is safer" : ""
+        shared
+          ? ". Using one key for reads and writes; a separate write-scoped key is safer but not required"
+          : ""
       }`,
     };
   } catch (err) {

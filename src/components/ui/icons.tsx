@@ -94,3 +94,20 @@ export function ArrowUpRight({ color = "currentColor" }: { color?: string }) {
     </svg>
   );
 }
+
+/** Cart — drawn at native 18x18 so its 1.25 stroke lands above 1 CSS px. */
+export function CartIcon({ color = "currentColor" }: { color?: string }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path
+        d="M1.5 2h2.1l1.4 8.4a1.4 1.4 0 0 0 1.38 1.18h6.2a1.4 1.4 0 0 0 1.38-1.13L15.2 5H4.3"
+        stroke={color}
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="6.6" cy="14.6" r="1.15" stroke={color} strokeWidth="1.25" />
+      <circle cx="12.9" cy="14.6" r="1.15" stroke={color} strokeWidth="1.25" />
+    </svg>
+  );
+}

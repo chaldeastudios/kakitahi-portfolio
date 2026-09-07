@@ -4,28 +4,29 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight } from "@/components/ui/icons";
-import { placeOrder, type OrderResult } from "@/app/products/[slug]/checkout/actions";
+import { placeOrder, type OrderResult } from "@/app/checkout/actions";
+import { useCart } from "@/lib/cart/CartProvider";
 import type { Product } from "@/lib/products";
 
 /**
- * CheckoutFlow — the three steps between wanting a product and having it.
+ * CheckoutFlow — the three steps between a full cart and having the goods.
  *
  * The site's own grammar throughout, because a checkout that looks like a
  * different website is where people stop trusting it: the 2-column split
  * with a sticky panel on the left, hairline /Border rules, the 10px /Yellow
  * marker, the /Black and /Yellow panels, and the same Body/Heading scale.
- * Nothing rounded, nothing shadowed, no colour that isn't already in the
- * palette.
+ * Nothing rounded, nothing shadowed, no colour outside the palette.
  *
- * What is new is only what a checkout actually needs: a step marker so you
- * always know where you are and what is left, a review you can go back
- * from, and a confirmation that hands over the goods rather than promising
- * an email. Steps are numbered "01. / 02. / 03." — the same numbering the
- * Services list uses — so it reads as part of the site.
+ * What is new is only what a checkout needs: a step marker so you always
+ * know where you are, a review you can go back from, and a confirmation
+ * that hands over the goods rather than promising an email. Steps are
+ * numbered "01. / 02. / 03." — the numbering the Services list uses — so it
+ * reads as part of the site.
  *
- * There is no payment step. Both products are free, so "buy" is a
- * formality; what the flow really collects is who you are, so the order is
- * a real record in Odoo rather than an anonymous download.
+ * There is no payment step. The products are free, so what the flow really
+ * collects is who you are, so the order is a real record rather than an
+ * anonymous download. The cart is emptied only once an order has actually
+ * come back, so a failure leaves you with your cart intact.
  */
 
 const EASE = [0.44, 0, 0.56, 1] as const;
@@ -36,22 +37,9 @@ const STEPS = [
   { n: "03.", label: "Confirmation" },
 ] as const;
 
-type Details = {
-  name: string;
-  email: string;
-  context: string;
-  marketingOptIn: boolean;
-};
+type Details = { name: string; email: string; context: string; marketingOptIn: boolean };
 
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="flex w-full flex-col items-start gap-2">
       <span className="t-button">{label}</span>
@@ -65,7 +53,6 @@ const inputClass =
   "t-body w-full border border-black bg-white px-4 py-3 text-black outline-none " +
   "transition-[box-shadow] duration-200 focus:shadow-[inset_0_-3px_0_0_var(--color-yellow)]";
 
-/** A row in the order summary. */
 function SummaryRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex w-full items-baseline justify-between gap-6 border-b border-border pb-[14px]">
@@ -75,7 +62,8 @@ function SummaryRow({ label, value }: { label: string; value: React.ReactNode })
   );
 }
 
-export default function CheckoutFlow({ product }: { product: Product }) {
+export default function CheckoutFlow({ products }: { products: Product[] }) {
+  const { lines, clear, ready } = useCart();
   const [step, setStep] = useState(0);
   const [details, setDetails] = useState<Details>({
     name: "",
@@ -90,7 +78,7 @@ export default function CheckoutFlow({ product }: { product: Product }) {
 
   // Each step replaces the panel in place, so without this you land on the
   // new step already scrolled past its top — most visibly on the
-  // confirmation, where the order reference is the thing you came for.
+  // confirmation, where the order reference is what you came for.
   useEffect(() => {
     if (step === 0) return;
     root.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -98,6 +86,15 @@ export default function CheckoutFlow({ product }: { product: Product }) {
 
   const set = <K extends keyof Details>(key: K, value: Details[K]) =>
     setDetails((d) => ({ ...d, [key]: value }));
+
+  const cart = lines
+    .map((line) => {
+      const product = products.find((p) => p.slug === line.slug);
+      return product ? { product, quantity: Math.min(line.quantity, product.maxQuantity) } : null;
+    })
+    .filter((x): x is { product: Product; quantity: number } => x !== null);
+
+  const itemCount = cart.reduce((n, c) => n + c.quantity, 0);
 
   function toReview(e: React.FormEvent) {
     e.preventDefault();
@@ -111,14 +108,34 @@ export default function CheckoutFlow({ product }: { product: Product }) {
   function confirm() {
     setError(null);
     startTransition(async () => {
-      const res = await placeOrder({ slug: product.slug, ...details });
+      const res = await placeOrder({
+        lines: cart.map((c) => ({ slug: c.product.slug, quantity: c.quantity })),
+        ...details,
+      });
       if (res.ok) {
         setResult(res);
         setStep(2);
+        clear();
       } else {
         setError(res.error);
       }
     });
+  }
+
+  // An empty cart has nothing to check out — unless an order just came
+  // back, in which case the cart is empty precisely because it worked.
+  if (ready && cart.length === 0 && !result) {
+    return (
+      <section className="flex min-h-[380px] w-full flex-col items-start justify-center gap-6 border-b border-border bg-offwhite p-6 desktop:p-10">
+        <h1 className="t-h2">Checkout</h1>
+        <p className="t-body max-w-[520px]">
+          There is nothing in your cart yet.
+        </p>
+        <Link href="/products" className="t-button bg-black px-6 py-4 text-white">
+          Browse products →
+        </Link>
+      </section>
+    );
   }
 
   return (
@@ -141,9 +158,7 @@ export default function CheckoutFlow({ product }: { product: Product }) {
                       }`}
                     />
                     <span className="t-body-s">{s.n}</span>
-                    <span
-                      className={`t-body ${state === "todo" ? "text-lightblack" : "text-black"}`}
-                    >
+                    <span className={`t-body ${state === "todo" ? "text-lightblack" : "text-black"}`}>
                       {s.label}
                     </span>
                     {state === "current" && <span className="sr-only">(current step)</span>}
@@ -153,10 +168,21 @@ export default function CheckoutFlow({ product }: { product: Product }) {
             </ol>
           </div>
 
-          <div className="flex w-full flex-col items-start gap-1 border-t border-border pt-5">
-            <span className="t-body-s">{product.kind}</span>
-            <span className="t-h5">{product.title}</span>
-            <span className="t-body">{product.price}</span>
+          {/* The cart, small, so it stays in view through every step */}
+          <div className="flex w-full flex-col items-start gap-3 border-t border-border pt-5">
+            {(result ? result.items : cart.map((c) => ({ title: c.product.title, kind: c.product.kind, quantity: c.quantity }))).map(
+              (item) => (
+                <div key={item.title} className="flex w-full items-baseline justify-between gap-4">
+                  <span className="t-body">{item.title}</span>
+                  <span className="t-body-s shrink-0">×{item.quantity}</span>
+                </div>
+              )
+            )}
+            {!result && (
+              <span className="t-body-s text-lightblack">
+                {itemCount} item{itemCount === 1 ? "" : "s"} · Free
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -184,8 +210,8 @@ export default function CheckoutFlow({ product }: { product: Product }) {
                 </div>
 
                 <p className="t-body max-w-[520px]">
-                  {product.title} is free — there is nothing to pay. This is so the order is a
-                  real record, and so I know who is using it.
+                  There is nothing to pay. This is so the order is a real record, and so I know
+                  who is using what I make.
                 </p>
 
                 <div className="flex w-full max-w-[520px] flex-col gap-6">
@@ -254,26 +280,22 @@ export default function CheckoutFlow({ product }: { product: Product }) {
                 </div>
 
                 <div className="flex w-full max-w-[560px] flex-col gap-[14px]">
-                  <SummaryRow label="Product" value={product.title} />
-                  <SummaryRow label="Type" value={product.kind} />
-                  <SummaryRow label="Licence" value={product.license || "Limited"} />
+                  {cart.map(({ product, quantity }) => (
+                    <SummaryRow
+                      key={product.slug}
+                      label={`${product.title} ×${quantity}`}
+                      value={product.price}
+                    />
+                  ))}
                   <SummaryRow label="Name" value={details.name} />
                   <SummaryRow label="Email" value={details.email} />
                   <SummaryRow
                     label="Product updates"
                     value={details.marketingOptIn ? "Yes, email me" : "No thanks"}
                   />
-                  <SummaryRow
-                    label="You'll get"
-                    value={
-                      product.deliverable
-                        ? "A download, plus the marketplace link"
-                        : "The marketplace link"
-                    }
-                  />
                   <div className="flex w-full items-baseline justify-between gap-6 pt-2">
                     <span className="t-h5">Total</span>
-                    <span className="t-h5">{product.price}</span>
+                    <span className="t-h5">Free</span>
                   </div>
                 </div>
 
@@ -314,45 +336,57 @@ export default function CheckoutFlow({ product }: { product: Product }) {
 
                 <div className="flex flex-col items-start gap-3">
                   <p className="t-h4 max-w-[560px]">
-                    {product.title} is yours. Order {result.reference}.
+                    Order {result.reference} is placed.
                   </p>
                   <p className="t-body max-w-[520px]">
-                    The order is on file against {result.email}. Nothing was charged — it exists
-                    so this is on the record rather than an anonymous download. Your files are
-                    below; you don't have to wait for an email to get them.
+                    It is on file against {result.email}. Nothing was charged — the order exists so
+                    this is on the record rather than an anonymous download. Your files are below;
+                    you don&apos;t have to wait for an email to get them.
                   </p>
                 </div>
 
-                <div className="flex w-full max-w-[560px] flex-col gap-[14px]">
-                  <div className="flex w-full items-baseline justify-between gap-6 border-b border-black/20 pb-[14px]">
-                    <span className="t-body shrink-0">Order</span>
-                    <span className="t-body text-right">{result.reference}</span>
+                {result.skipped.length > 0 && (
+                  <div className="flex w-full max-w-[560px] flex-col gap-2 border-l-[3px] border-black pl-3">
+                    {result.skipped.map((s) => (
+                      <p key={s.title} className="t-body">
+                        <strong>{s.title}</strong> wasn&apos;t added — {s.reason}
+                      </p>
+                    ))}
                   </div>
-                  <div className="flex w-full items-baseline justify-between gap-6 border-b border-black/20 pb-[14px]">
-                    <span className="t-body shrink-0">Paid</span>
-                    <span className="t-body text-right">{product.price}</span>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex flex-wrap items-center gap-4">
-                  {result.downloadUrl && (
-                    <a
-                      href={result.downloadUrl}
-                      className="t-button bg-black px-6 py-4 text-white"
-                      download
+                <div className="flex w-full max-w-[620px] flex-col gap-6">
+                  {result.items.map((item) => (
+                    <div
+                      key={item.slug}
+                      className="flex w-full flex-col items-start gap-3 border-b border-black/20 pb-5"
                     >
-                      Download {result.deliverableName ?? "your file"} ↓
-                    </a>
-                  )}
-                  <a
-                    href={product.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="t-button flex items-center gap-[3px] border border-black px-6 py-4 text-black"
-                  >
-                    {product.linkLabel}
-                    <ArrowUpRight color="rgb(0, 0, 0)" />
-                  </a>
+                      <div className="flex w-full items-baseline justify-between gap-4">
+                        <span className="t-h5">{item.title}</span>
+                        <span className="t-body-s">{item.kind}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4">
+                        {item.downloadUrl && (
+                          <a
+                            href={item.downloadUrl}
+                            className="t-button bg-black px-6 py-4 text-white"
+                            download
+                          >
+                            Download {item.deliverableName ?? "your file"} ↓
+                          </a>
+                        )}
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="t-button flex items-center gap-[3px] border border-black px-6 py-4 text-black"
+                        >
+                          {item.linkLabel}
+                          <ArrowUpRight color="rgb(0, 0, 0)" />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <Link href="/products" className="t-body underline underline-offset-4">
