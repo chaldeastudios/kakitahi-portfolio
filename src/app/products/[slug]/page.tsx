@@ -10,6 +10,9 @@ import { ArrowUpRight } from "@/components/ui/icons";
 import { getProducts } from "@/lib/odoo/content";
 import { withOdooFallback } from "@/lib/odoo/safe";
 import { PRODUCTS, getProduct, getNextProduct, type Product } from "@/lib/products";
+import { getSession } from "@/lib/auth/session";
+import { getOwnedProductIds } from "@/lib/odoo/orders";
+import { createDownloadToken } from "@/lib/checkout/signing";
 
 /**
  * /products/[slug] — one product, on the case study's frame (Framer page
@@ -71,6 +74,21 @@ export default async function ProductPage({
 
   const i = products.findIndex((p) => p.slug === slug);
   const next = i >= 0 ? products[(i + 1) % products.length] : getNextProduct(slug);
+
+  // What a signed-in customer already owns changes what this page offers:
+  // a template limited to one per customer becomes "you have this, here it
+  // is" rather than a buy button they'd be refused at checkout, while a
+  // product that can be bought again keeps its Add to Cart and simply says
+  // so. Signed out, none of this runs and the page is the public one.
+  const session = await getSession();
+  const owned = session ? await getOwnedProductIds(session.partnerId) : new Set<number>();
+  const isOwned = owned.has(product.productId);
+  const ownedDownloadUrl =
+    isOwned && product.deliverable
+      ? `/api/download?token=${encodeURIComponent(
+          createDownloadToken(`owned-${product.productId}`, product.deliverable.attachmentId)
+        )}`
+      : null;
   const [opening, ...rest] = product.description.split("\n\n");
   const [lead, ...gallery] = product.images;
 
@@ -110,21 +128,47 @@ export default async function ProductPage({
               </MetaRow>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-              <AddToCart
-                slug={product.slug}
-                maxQuantity={product.maxQuantity}
-                purchasable={product.purchasable}
-              />
-              <a
-                href={product.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-[3px] overflow-hidden"
-              >
-                <span className="t-body">{product.linkLabel}</span>
-                <ArrowUpRight color="rgb(255, 255, 255)" />
-              </a>
+            <div className="flex w-full flex-col items-start gap-4">
+              {isOwned && (
+                <div className="flex w-full flex-col items-start gap-3 border-l-[3px] border-yellow pl-3">
+                  <span className="t-button">You have this</span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {ownedDownloadUrl && (
+                      <a
+                        href={ownedDownloadUrl}
+                        download
+                        className="t-button bg-yellow px-5 py-3 text-black"
+                      >
+                        Download {product.deliverable?.name ?? "your file"} ↓
+                      </a>
+                    )}
+                    <Link href="/account" className="t-body underline underline-offset-4">
+                      See it in your account
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-4">
+                {/* One per customer and already owned: there is nothing to
+                    add, and offering it would only be refused at checkout. */}
+                {!(isOwned && product.oncePerCustomer) && (
+                  <AddToCart
+                    slug={product.slug}
+                    maxQuantity={product.maxQuantity}
+                    purchasable={product.purchasable}
+                  />
+                )}
+                <a
+                  href={product.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-[3px] overflow-hidden"
+                >
+                  <span className="t-body">{product.linkLabel}</span>
+                  <ArrowUpRight color="rgb(255, 255, 255)" />
+                </a>
+              </div>
             </div>
           </div>
         </PageHero>
@@ -186,11 +230,17 @@ export default async function ProductPage({
               </Reveal>
             )}
 
-            <AddToCart
-              slug={product.slug}
-              maxQuantity={product.maxQuantity}
-              purchasable={product.purchasable}
-            />
+            {isOwned && product.oncePerCustomer ? (
+              <Link href="/account" className="t-button bg-black px-6 py-4 text-white">
+                You have this — open your account →
+              </Link>
+            ) : (
+              <AddToCart
+                slug={product.slug}
+                maxQuantity={product.maxQuantity}
+                purchasable={product.purchasable}
+              />
+            )}
           </div>
         </section>
 

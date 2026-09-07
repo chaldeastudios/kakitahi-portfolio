@@ -185,6 +185,80 @@ async function checkCheckout(): Promise<CheckResult> {
   }
 }
 
+/**
+ * Customer accounts are portal users in Odoo, and signing in asks Odoo
+ * itself whether a password is right. Two things can be checked without
+ * anyone's credentials: that the write key can see res.users at all, and
+ * that the portal group this site puts customers in still exists.
+ *
+ * The credential check itself (common.authenticate) can only be exercised
+ * by a real sign-in, so it is not simulated here.
+ */
+async function checkAccounts(): Promise<CheckResult> {
+  const name = "Customer accounts (portal users, base.group_portal id 10)";
+  if (!isCheckoutConfigured) {
+    return { name, ok: false, skipped: true, detail: "Checkout/accounts not configured" };
+  }
+  try {
+    const [portalUsers, group] = await Promise.all([
+      callJson2<Array<{ id: number }>>(
+        "res.users",
+        "search_read",
+        { domain: [["share", "=", true]], fields: ["id"], limit: 5 },
+        ODOO_WRITE_API_KEY
+      ),
+      callJson2<Array<{ id: number }>>(
+        "res.groups",
+        "read",
+        { ids: [10], fields: ["id"] },
+        ODOO_WRITE_API_KEY
+      ),
+    ]);
+    if (!group.length) {
+      return { name, ok: false, detail: "Portal group id 10 not found on this database" };
+    }
+    return {
+      name,
+      ok: true,
+      detail: `OK — portal group present, ${portalUsers.length} customer account(s) sampled`,
+    };
+  } catch (err) {
+    return { name, ok: false, detail: String(err) };
+  }
+}
+
+/**
+ * Odoo sends the order confirmation, and password resets would go the same
+ * way. Neither works without an outgoing mail server, and this instance has
+ * none — so say so here rather than letting it look like a silent success.
+ */
+async function checkOutgoingMail(): Promise<CheckResult> {
+  const name = "Outgoing email (order confirmations, password resets)";
+  if (!isOdooConfigured) {
+    return { name, ok: false, skipped: true, detail: "Odoo not configured" };
+  }
+  try {
+    const servers = await callJson2<Array<{ id: number; name: string }>>(
+      "ir.mail_server",
+      "search_read",
+      { domain: [["active", "=", true]], fields: ["id", "name"], limit: 5 },
+      ODOO_API_KEY
+    );
+    if (servers.length === 0) {
+      return {
+        name,
+        ok: false,
+        detail:
+          "No outgoing mail server in Odoo — order confirmation emails fail, and password " +
+          "resets are manual (Settings → Users → Change Password). The site itself works.",
+      };
+    }
+    return { name, ok: true, detail: `OK — ${servers.length} mail server(s) configured` };
+  } catch (err) {
+    return { name, ok: false, detail: String(err) };
+  }
+}
+
 export async function runAllChecks(): Promise<CheckResult[]> {
   return Promise.all([
     checkServerReachable(),
@@ -193,5 +267,7 @@ export async function runAllChecks(): Promise<CheckResult[]> {
     checkJournal(),
     checkProductMedia(),
     checkCheckout(),
+    checkAccounts(),
+    checkOutgoingMail(),
   ]);
 }

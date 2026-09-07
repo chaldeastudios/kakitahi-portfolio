@@ -111,3 +111,18 @@ export function CartIcon({ color = "currentColor" }: { color?: string }) {
     </svg>
   );
 }
+
+/** Person — drawn at native 18x18, matching the cart icon's weight. */
+export function UserIcon({ color = "currentColor" }: { color?: string }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <circle cx="9" cy="6" r="3.1" stroke={color} strokeWidth="1.25" />
+      <path
+        d="M2.9 16c0-3.1 2.7-4.9 6.1-4.9s6.1 1.8 6.1 4.9"
+        stroke={color}
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

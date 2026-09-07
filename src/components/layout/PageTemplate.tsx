@@ -1,6 +1,7 @@
 import Header from "./Header";
 import Footer from "./Footer";
 import Cursor from "@/components/ui/Cursor";
+import { getSession } from "@/lib/auth/session";
 
 /**
  * PageTemplate — the Framer page template: the div that houses the Header
@@ -10,7 +11,7 @@ import Cursor from "@/components/ui/Cursor";
  * oN6wMQVRI) carries the pattern background and clips its overflow, so the
  * pattern shows through wherever a section does not paint its own colour.
  */
-export default function PageTemplate({
+export default async function PageTemplate({
   children,
   ground = "pattern",
 }: {
@@ -18,6 +19,10 @@ export default function PageTemplate({
   /** The 404 page's frame is plain /White rather than the pattern ground. */
   ground?: "pattern" | "white";
 }) {
+  // Read once here, for the header. Every page already renders through this
+  // template, so nothing else has to think about it.
+  const session = await getSession();
+
   return (
     <div
       className={`relative min-h-screen w-full overflow-x-clip ${
@@ -25,7 +30,7 @@ export default function PageTemplate({
       }`}
     >
       <Cursor />
-      <Header />
+      <Header account={session ? { name: session.name, email: session.email } : undefined} />
       <main className="w-full">{children}</main>
       <Footer />
     </div>

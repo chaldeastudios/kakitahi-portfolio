@@ -9,6 +9,7 @@ import MenuButton from "@/components/ui/MenuButton";
 import TimezoneClock from "@/components/ui/TimezoneClock";
 import { ClockIcon } from "@/components/ui/icons";
 import CartButton from "@/components/cart/CartButton";
+import AccountButton from "@/components/account/AccountButton";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { NAV_LINKS } from "@/lib/content";
 
@@ -40,10 +41,17 @@ import { NAV_LINKS } from "@/lib/content";
  *     clear the divider at 1440 but not below it, so under that the
  *     collapsed menu, which lists every one of them, takes over.
  *
- * The cart sits in the right-hand group at every breakpoint, including the
- * collapsed one: a cart you cannot see is a cart you forget you filled.
+ * The cart and the account link sit in the right-hand group at every
+ * breakpoint, including the collapsed one: a cart you cannot see is a cart
+ * you forget you filled, and an account you cannot reach is one you forget
+ * you have.
  */
-export default function Header() {
+export default function Header({
+  account,
+}: {
+  /** Read server-side in PageTemplate; undefined when signed out. */
+  account?: { name: string; email: string };
+} = {}) {
   const [open, setOpen] = useState(false);
   const EASE = [0.44, 0, 0.56, 1] as const;
 
@@ -93,6 +101,7 @@ export default function Header() {
             <TimezoneClock timezone="America/New_York" textColor="rgb(0, 0, 0)" />
             <span className="t-body-s">NYC</span>
           </div>
+          <AccountButton name={account?.name} email={account?.email} />
           <CartButton />
           <div className="hidden h-full min-[1440px]:block">
             <Button label="Contact" href="/#contact" className="h-full min-w-[150px]" />

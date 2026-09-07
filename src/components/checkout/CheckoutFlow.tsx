@@ -62,12 +62,19 @@ function SummaryRow({ label, value }: { label: string; value: React.ReactNode })
   );
 }
 
-export default function CheckoutFlow({ products }: { products: Product[] }) {
+export default function CheckoutFlow({
+  products,
+  account,
+}: {
+  products: Product[];
+  /** Set when someone is signed in; their identity is then not editable. */
+  account?: { name: string; email: string };
+}) {
   const { lines, clear, ready } = useCart();
   const [step, setStep] = useState(0);
   const [details, setDetails] = useState<Details>({
-    name: "",
-    email: "",
+    name: account?.name ?? "",
+    email: account?.email ?? "",
     context: "",
     marketingOptIn: true,
   });
@@ -212,29 +219,50 @@ export default function CheckoutFlow({ products }: { products: Product[] }) {
                 <p className="t-body max-w-[520px]">
                   There is nothing to pay. This is so the order is a real record, and so I know
                   who is using what I make.
+                  {!account && (
+                    <>
+                      {" "}
+                      <Link href="/account/login?next=/checkout" className="underline underline-offset-4">
+                        Sign in
+                      </Link>{" "}
+                      if you have an account, and this order joins the rest.
+                    </>
+                  )}
                 </p>
 
                 <div className="flex w-full max-w-[520px] flex-col gap-6">
-                  <Field label="Name">
-                    <input
-                      className={inputClass}
-                      value={details.name}
-                      onChange={(e) => set("name", e.target.value)}
-                      autoComplete="name"
-                      required
-                    />
-                  </Field>
+                  {account ? (
+                    // Signed in: the identity is the session's, and the
+                    // server uses that rather than anything posted here.
+                    <div className="flex w-full flex-col items-start gap-2 border-l-[3px] border-yellow pl-3">
+                      <span className="t-button">Ordering as</span>
+                      <span className="t-body">{account.name}</span>
+                      <span className="t-body-s text-lightblack">{account.email}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Field label="Name">
+                        <input
+                          className={inputClass}
+                          value={details.name}
+                          onChange={(e) => set("name", e.target.value)}
+                          autoComplete="name"
+                          required
+                        />
+                      </Field>
 
-                  <Field label="Email" hint="Where the order confirmation goes.">
-                    <input
-                      className={inputClass}
-                      type="email"
-                      value={details.email}
-                      onChange={(e) => set("email", e.target.value)}
-                      autoComplete="email"
-                      required
-                    />
-                  </Field>
+                      <Field label="Email" hint="Where the order confirmation goes.">
+                        <input
+                          className={inputClass}
+                          type="email"
+                          value={details.email}
+                          onChange={(e) => set("email", e.target.value)}
+                          autoComplete="email"
+                          required
+                        />
+                      </Field>
+                    </>
+                  )}
 
                   <Field label="What are you building?" hint="Optional.">
                     <textarea
@@ -342,6 +370,28 @@ export default function CheckoutFlow({ products }: { products: Product[] }) {
                     It is on file against {result.email}. Nothing was charged — the order exists so
                     this is on the record rather than an anonymous download. Your files are below;
                     you don&apos;t have to wait for an email to get them.
+                  </p>
+                  <p className="t-body max-w-[520px]">
+                    {account ? (
+                      <>
+                        It&apos;s in{" "}
+                        <Link href="/account" className="underline underline-offset-4">
+                          your account
+                        </Link>{" "}
+                        too, with everything else you own.
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/account/login"
+                          className="underline underline-offset-4"
+                        >
+                          Create an account
+                        </Link>{" "}
+                        with this same email and this order — and its files — will be waiting
+                        there.
+                      </>
+                    )}
                   </p>
                 </div>
 

@@ -9,7 +9,9 @@ sourced from the `chaldeastudios/kakitahi` repo.
 - **Pages:** `/` (home), `/projects` (listing), `/projects/[slug]` (case
   study detail, one per project), `/products` (listing), `/products/[slug]`
   (one per product), `/cart`, `/checkout` (the three-step order flow),
-  `/journal` (listing), `/journal/[slug]` (one per entry), `/404`
+  `/account` + `/account/orders/[reference]` (a customer's own orders),
+  `/account/login`, `/journal` (listing), `/journal/[slug]` (one per entry),
+  `/404`
 
 ```bash
 npm install
@@ -29,6 +31,10 @@ src/
   app/checkout/            /checkout — the three-step order flow + action
   app/api/odoo/media/      proxies Odoo binaries (product images)
   app/api/download/        signed, expiring download of a product's file
+  app/account/             sign in, the account, and one order
+  lib/auth/session.ts      the signed session cookie (no session store)
+  lib/auth/accounts.ts     portal users in Odoo: sign in, sign up
+  lib/odoo/orders.ts       a customer's own orders, scoped to their partner
   lib/cart/CartProvider    the cart: slugs + quantities, in localStorage
   lib/checkout/orders.ts   partner, purchase history, confirmed sale.order
   lib/checkout/signing.ts  HMAC for the download links
@@ -265,6 +271,66 @@ in Odoo, so the route fetches it with the server key and decides access
 from an HMAC over the order reference, the attachment id and an expiry.
 Nothing is stored, and the link cannot be edited to reach a different
 attachment without breaking its signature.
+
+### Customer accounts
+
+**Odoo owns the identity.** A customer here is a `res.users` in the Portal
+group (`base.group_portal`, id 10 on this database) attached to the
+`res.partner` their orders already point at — the same contact the checkout
+creates. So signing up doesn't make a second copy of anyone: it gives an
+existing contact a way to log in, and their history is there the moment they
+get in. Someone who ordered as a guest last week and signs up today with the
+same address finds that order waiting.
+
+**Odoo owns the password too.** Sign-up hands the chosen password to Odoo,
+which hashes it; sign-in asks Odoo whether a password is right, via
+`common.authenticate` on the same unauthenticated `/jsonrpc` endpoint the
+status page already pings. No password material is stored in this codebase
+or passes through anything but that call. Internal (staff) Odoo users are
+refused at the shop's sign-in — this surface is for customers.
+
+**The session is a signed cookie, not a table.** It carries the partner id,
+user id and email, signed with the same server secret the download links
+use: HttpOnly, SameSite=Lax, Secure in production, thirty days. There is no
+session store to grow or leak, and signing out is dropping the cookie. The
+cookie is an identity claim only — every page still reads that customer's
+real orders from Odoo, so a session can say who you are but never what you
+own.
+
+**What a customer sees.** `/account` has two halves because they answer two
+questions:
+
+- **Your things** — every product they own, gathered across all orders, each
+  with its download and its marketplace link, so nobody has to remember
+  which order a file arrived on.
+- **Orders** — the record: reference, date, status (Odoo's state in
+  customer words), and what was on it. Cancelled orders are shown too;
+  "where did my order go" is exactly what a history is for.
+
+`/account/orders/[reference]` is one order in full. The reference in the URL
+is matched *within* the set that partner owns, so guessing someone else's
+reference finds nothing rather than finding theirs.
+
+**Product pages change for a signed-in owner.** A product limited to one per
+customer that they already have loses its Add to Cart — offering it would
+only be refused at checkout — and gains "You have this", its download, and a
+link into the account. A product that can be bought again keeps its Add to
+Cart and simply says so. Signed out, none of this runs and the page is the
+public one.
+
+**Checkout knows who they are.** Signed in, the identity comes from the
+session rather than the form — it is the one thing on that page a customer
+should not be able to change, or one account could order against another's
+contact.
+
+**Password resets need email, and this Odoo has none.** Every `mail.mail`
+on the instance is in an `exception` state with "Connection refused", so
+order-confirmation emails don't arrive either. That is why the confirmation
+screen hands over the files directly instead of promising an email, and why
+the sign-in page says a forgotten password is reset by hand (Odoo →
+Settings → Users → Change Password) rather than offering a link that would
+go nowhere. Configure an outgoing mail server in Odoo and both start working
+with no change here; `/status` reports on it.
 
 **Why not drive Odoo's own `website_sale` shop**, the way
 `chaldeastudios/kilele_coffee` does? That reference scrapes `/shop/cart`,

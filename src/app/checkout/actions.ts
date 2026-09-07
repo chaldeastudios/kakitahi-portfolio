@@ -11,6 +11,7 @@ import { getProducts } from "@/lib/odoo/content";
 import { withOdooFallback } from "@/lib/odoo/safe";
 import { PRODUCTS } from "@/lib/products";
 import { isCheckoutConfigured } from "@/lib/odoo/config";
+import { getSession } from "@/lib/auth/session";
 
 /**
  * The one server action behind the cart checkout.
@@ -57,8 +58,12 @@ export type CartSubmission = {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
-  const name = input.name?.trim() ?? "";
-  const email = input.email?.trim() ?? "";
+  // A signed-in customer's identity comes from the session cookie, not the
+  // form: it is the one thing on this page they should not be able to
+  // change, or one account could place orders against another's contact.
+  const session = await getSession();
+  const name = session?.name ?? input.name?.trim() ?? "";
+  const email = session?.email ?? input.email?.trim() ?? "";
 
   if (name.length < 2) return { ok: false, error: "Please give a name we can address you by." };
   if (!EMAIL.test(email)) return { ok: false, error: "That email address doesn't look right." };
@@ -109,12 +114,13 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
   try {
     const partnerId = dryRun
       ? 0
-      : await findOrCreatePartner({
+      : session?.partnerId ??
+        (await findOrCreatePartner({
           name,
           email,
           context: input.context,
           marketingOptIn: input.marketingOptIn,
-        });
+        }));
 
     // "One per customer" is enforced here, against what Odoo says this
     // person has actually been given before — not against anything the
