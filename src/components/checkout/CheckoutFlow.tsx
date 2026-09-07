@@ -23,10 +23,13 @@ import type { Product } from "@/lib/products";
  * numbered "01. / 02. / 03." — the numbering the Services list uses — so it
  * reads as part of the site.
  *
- * There is no payment step. The products are free, so what the flow really
- * collects is who you are, so the order is a real record rather than an
- * anonymous download. The cart is emptied only once an order has actually
- * come back, so a failure leaves you with your cart intact.
+ * A free cart has no payment step: what the flow collects is who you are,
+ * so the order is a real record rather than an anonymous download. A priced
+ * cart places the same order as a quotation and then hands the customer to
+ * Odoo's own portal page for it, where the Paystack provider takes the
+ * payment. Odoo confirms the order when the money lands, and that is what
+ * releases the files — this site never sees a card. Either way the cart is
+ * emptied only after the server has answered, so a failure leaves it intact.
  */
 
 const EASE = [0.44, 0, 0.56, 1] as const;
@@ -123,6 +126,13 @@ export default function CheckoutFlow({
         ...details,
       });
       if (res.ok) {
+        // A priced order hands back Odoo's portal payment page; the cart is
+        // cleared first so coming back from payment doesn't find it full.
+        if (res.paymentUrl) {
+          clear();
+          window.location.href = res.paymentUrl;
+          return;
+        }
         setResult(res);
         setStep(2);
         clear();
@@ -229,7 +239,7 @@ export default function CheckoutFlow({
                 <p className="t-body max-w-[520px]">
                   {total === 0
                     ? "There is nothing to pay. This is so the order is a real record, and so I know who is using what I make."
-                    : "Your order is placed here and I'll send payment details — the files are released once payment clears."}
+                    : "You'll be taken to a secure payment page. Your files are released the moment the payment clears."}
                   {!account && (
                     <>
                       {" "}
@@ -351,7 +361,13 @@ export default function CheckoutFlow({
                     disabled={pending}
                     className="t-button bg-yellow px-6 py-4 text-black disabled:opacity-70"
                   >
-                    {pending ? "Placing order…" : "Place order →"}
+                    {pending
+                      ? total === 0
+                        ? "Placing order…"
+                        : "Opening payment…"
+                      : total === 0
+                        ? "Place order →"
+                        : `Pay ${totalLabel} →`}
                   </button>
                   <button
                     type="button"

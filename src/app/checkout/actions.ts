@@ -48,6 +48,11 @@ export type OrderResult =
       confirmed: boolean;
       amountTotal: number;
       currency: string;
+      /**
+       * Odoo's portal page for this order, where it gets paid. Present only
+       * on a priced order; the client redirects to it.
+       */
+      paymentUrl: string | null;
     }
   | { ok: false; error: string };
 
@@ -169,6 +174,7 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
           partnerId: 0,
           amountTotal: total,
           confirmed: isFree,
+          paymentUrl: null,
         }
       : await writeOrder(
           lines,
@@ -194,6 +200,19 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
       linkLabel: r.product.linkLabel,
     }));
 
+    // A priced order is paid on Odoo's own portal page for it, which is
+    // where the Paystack provider lives (odoo/addons/payment_paystack).
+    // This site never sees a card or a payment credential: it hands over an
+    // order and Odoo confirms it when the money lands, which is what
+    // releases the downloads.
+    if (!order.confirmed && order.amountTotal > 0 && !order.paymentUrl) {
+      return {
+        ok: false,
+        error:
+          "Your order is saved, but the payment page could not be opened. Please try again, or get in touch and I'll send a payment link.",
+      };
+    }
+
     return {
       ok: true,
       reference: order.reference,
@@ -203,6 +222,7 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
       confirmed: order.confirmed,
       amountTotal: order.amountTotal,
       currency,
+      paymentUrl: order.paymentUrl,
     };
   } catch (err) {
     console.warn("[checkout] order failed:", err);

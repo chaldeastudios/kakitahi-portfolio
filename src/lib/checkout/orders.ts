@@ -1,5 +1,5 @@
 import "server-only";
-import { ODOO_WRITE_API_KEY, isCheckoutConfigured } from "@/lib/odoo/config";
+import { ODOO_URL, ODOO_WRITE_API_KEY, isCheckoutConfigured } from "@/lib/odoo/config";
 import { callJson2 } from "@/lib/odoo/json2";
 
 /**
@@ -56,9 +56,45 @@ export type PlacedOrder = {
   amountTotal: number;
   /** False when it is a quotation awaiting payment. */
   confirmed: boolean;
+  /**
+   * Odoo's own portal page for this order, where it can be paid. Present
+   * only on an unconfirmed, priced order. See paymentUrlFor().
+   */
+  paymentUrl: string | null;
 };
 
 type PartnerRow = { id: number };
+
+/**
+ * Where a customer pays for an unconfirmed order.
+ *
+ * Payment is Odoo's job, not this site's: the Paystack provider lives in
+ * Odoo (see odoo/addons/payment_paystack), so the customer is handed to
+ * Odoo's own portal page for their order, which offers whichever providers
+ * are enabled and confirms the order itself once the money lands. Nothing
+ * here holds a payment credential or decides whether a payment succeeded.
+ *
+ * The portal URL needs the order's access token — Odoo generates these
+ * lazily, so `_portal_ensure_token` is called rather than assuming the
+ * field is already populated.
+ */
+async function paymentUrlFor(orderId: number): Promise<string | null> {
+  if (!ODOO_URL) return null;
+  try {
+    const token = await callJson2<string | string[]>(
+      "sale.order",
+      "_portal_ensure_token",
+      { ids: [orderId] },
+      ODOO_WRITE_API_KEY
+    );
+    const accessToken = Array.isArray(token) ? token[0] : token;
+    if (!accessToken) return null;
+    return `${ODOO_URL}/my/orders/${orderId}?access_token=${encodeURIComponent(accessToken)}`;
+  } catch (err) {
+    console.warn("[odoo] could not build a payment link:", err);
+    return null;
+  }
+}
 
 /** Find the contact for this email, or make one. */
 export async function findOrCreatePartner(details: CheckoutDetails): Promise<number> {
@@ -221,11 +257,14 @@ export async function placeOrder(
     ODOO_WRITE_API_KEY
   );
 
+  const amountTotal = order?.amount_total ?? 0;
+
   return {
     reference: order?.name ?? `SO-${orderId}`,
     orderId,
     partnerId,
-    amountTotal: order?.amount_total ?? 0,
+    amountTotal,
     confirmed: confirm,
+    paymentUrl: confirm || amountTotal <= 0 ? null : await paymentUrlFor(orderId),
   };
 }
