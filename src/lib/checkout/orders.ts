@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { ODOO_URL, ODOO_WRITE_API_KEY, isCheckoutConfigured } from "@/lib/odoo/config";
 import { callJson2 } from "@/lib/odoo/json2";
 
@@ -65,6 +66,8 @@ export type PlacedOrder = {
 
 type PartnerRow = { id: number };
 
+type AccessTokenRow = { id: number; access_token: string | false };
+
 /**
  * Where a customer pays for an unconfirmed order.
  *
@@ -74,21 +77,39 @@ type PartnerRow = { id: number };
  * are enabled and confirms the order itself once the money lands. Nothing
  * here holds a payment credential or decides whether a payment succeeded.
  *
- * The portal URL needs the order's access token — Odoo generates these
- * lazily, so `_portal_ensure_token` is called rather than assuming the
- * field is already populated.
+ * The portal URL needs the order's access token. Odoo's own portal.mixin
+ * generates one lazily via `_portal_ensure_token()` — but that method's
+ * leading underscore marks it private, and Odoo's RPC layer refuses to
+ * call any method starting with `_` from outside the process
+ * (odoo/service/model.py: get_public_method raises "Private methods ...
+ * cannot be called remotely"). That was silently caught below and turned
+ * into a missing payment link on every priced order.
+ *
+ * So the same effect — a token exists, one way or another — is reproduced
+ * here with only public methods (`read`, `write`), generating the token in
+ * the exact same format `_portal_ensure_token` itself would.
  */
 async function paymentUrlFor(orderId: number): Promise<string | null> {
   if (!ODOO_URL) return null;
   try {
-    const token = await callJson2<string | string[]>(
+    const [row] = await callJson2<AccessTokenRow[]>(
       "sale.order",
-      "_portal_ensure_token",
-      { ids: [orderId] },
+      "read",
+      { ids: [orderId], fields: ["access_token"] },
       ODOO_WRITE_API_KEY
     );
-    const accessToken = Array.isArray(token) ? token[0] : token;
-    if (!accessToken) return null;
+
+    let accessToken = row?.access_token || "";
+    if (!accessToken) {
+      accessToken = randomUUID();
+      await callJson2(
+        "sale.order",
+        "write",
+        { ids: [orderId], vals: { access_token: accessToken } },
+        ODOO_WRITE_API_KEY
+      );
+    }
+
     return `${ODOO_URL}/my/orders/${orderId}?access_token=${encodeURIComponent(accessToken)}`;
   } catch (err) {
     console.warn("[odoo] could not build a payment link:", err);
