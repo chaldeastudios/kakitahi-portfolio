@@ -39,6 +39,7 @@ export default async function ProductsPage() {
                 price={p.price}
                 description={p.description.split("\n\n")[0]}
                 href={`/products/${p.slug}`}
+                image={p.images[0]}
               />
             </RevealItem>
           ))}

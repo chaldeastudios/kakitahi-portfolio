@@ -8,8 +8,8 @@ sourced from the `chaldeastudios/kakitahi` repo.
 - **Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Motion 13
 - **Pages:** `/` (home), `/projects` (listing), `/projects/[slug]` (case
   study detail, one per project), `/products` (listing), `/products/[slug]`
-  (one per product), `/journal` (listing), `/journal/[slug]` (one per
-  entry), `/404`
+  (one per product), `/products/[slug]/checkout` (the three-step order
+  flow), `/journal` (listing), `/journal/[slug]` (one per entry), `/404`
 
 ```bash
 npm install
@@ -24,7 +24,11 @@ src/
   app/globals.css          design tokens + the three-tier type scale
   app/projects/            /projects and /projects/[slug] (live Odoo data)
   app/journal/             /journal and /journal/[slug] (live Odoo data)
-  app/products/            /products and /products/[slug] (live Odoo data)
+  app/products/            /products, /products/[slug] and its checkout
+  app/api/odoo/media/      proxies Odoo binaries (product images)
+  app/api/download/        signed, expiring download of a product's file
+  lib/checkout/orders.ts   creates the partner + confirmed sale.order
+  lib/checkout/signing.ts  HMAC for the download links
   app/status/               /status — live Odoo connection diagnostics
   app/not-found.tsx        /404
   lib/content.ts           home page copy — services, testimonials, CTA, footer
@@ -73,7 +77,8 @@ calls made when porting it here:
 connection is configured; then works with no further code changes.**
 
 The user's real Odoo instance (`chaldeastudios` Kakitahi, Odoo 19) is the
-source of truth for services, project case studies, and journal entries:
+source of truth for services, products, project case studies, and journal
+entries — and, since the checkout, for the orders those products generate:
 
 | Odoo model | Holds |
 |---|---|
@@ -102,7 +107,7 @@ Every record carries a predictable HTML structure that
 | Service / product | `.ks-number` · `.ks-description>p` · `ul.ks-highlights>li` · `.ks-stat > span.ks-stat-value + span.ks-stat-label` · `.ks-images>img[src][alt]` |
 | Case study | `ul.ks-meta > li.ks-client\|.ks-year\|.ks-live-link\|.ks-services` · `.ks-overview` · `.ks-problem` · `.ks-solution` · `.ks-result` · `.ks-testimonial > p… + footer > span.ks-name + span.ks-role` · `.ks-images` |
 | Journal entry | `ul.ks-meta > li.ks-category\|.ks-date\|.ks-author` · `.ks-intro` · repeated `.ks-body > h3 + p…` |
-| Product | the service shape, plus `ul.ks-meta > li.ks-kind\|.ks-platform\|.ks-price\|.ks-link-label\|.ks-live-link` |
+| Product | the service shape, plus repeated `.ks-body > h3 + p… + ul>li`, and `ul.ks-meta > li.ks-kind\|.ks-tagline\|.ks-platform\|.ks-price\|.ks-license\|.ks-published\|.ks-updated\|.ks-tags\|.ks-link-label\|.ks-live-link`. Its gallery and deliverable are **not** in the description — see below. |
 
 `.ks-number`, `.ks-stat` and `.ks-images` are optional; the description is
 not.
@@ -127,10 +132,14 @@ than a section of the live site quietly rendering blank.
 session/login step) — the same pattern proven live in production by
 `chaldeastudios/kilele_coffee` (a working Next.js + Odoo 19 integration
 on this same Vercel account). `src/lib/odoo/json2.ts` and `config.ts` are
-near-verbatim ports of that reference's client. Read-only only: this site
-never writes to Odoo, so a single `ODOO_API_KEY` covers everything (no
-separate write-scoped credential the way kilele_coffee needs for its
-carts and forms).
+near-verbatim ports of that reference's client.
+
+Reading and writing are separated. Everything the site *shows* uses the
+read-only `ODOO_API_KEY`; the product checkout — the one write path — uses
+`ODOO_WRITE_API_KEY`, which falls back to the read key but should be its own
+write-scoped credential, so the key that renders every public page cannot
+write anything. That is the same split kilele_coffee makes for its carts
+and form submissions.
 
 **What's wired.** The home page, `/projects`, `/projects/[slug]`,
 `/products`, `/products/[slug]`, `/journal` and `/journal/[slug]` all fetch
@@ -159,6 +168,14 @@ ODOO_API_KEY=<a read-only API key — Odoo Settings → your profile →
               Account Security → New API Key>
 ```
 
+The checkout needs two more, and only the checkout does — everything else
+works without them:
+
+```
+ODOO_WRITE_API_KEY=<a write-scoped API key; falls back to ODOO_API_KEY>
+CHECKOUT_SECRET=<any long random string: openssl rand -base64 32>
+```
+
 Then visit `/status` — a live diagnostic page (not part of the Framer
 design; same checks as kilele_coffee's own `/status`) that pings Odoo and
 confirms the key can read each of the three model sets, with no fallback
@@ -176,19 +193,56 @@ moment it's edited in Odoo; if that per-request Odoo round trip ever
 becomes a real latency or cost concern, moving to ISR (`revalidate: N`
 instead of `no-store`) is a small, isolated change in `json2.ts`.
 
-### Products, and the shop we are not using yet
+### Products: media, the deliverable, and the checkout
 
-ReplyFrame and Bernaum are both free on the Framer Marketplace, so each
-product page ends in a direct link out rather than a checkout. That is
-deliberate: Odoo's own eCommerce module can take payment and deliver a
-digital download, but wiring a shop to sell two free things would be
-machinery with nothing to do.
+Three things about a product live outside its description field, because
+they are Odoo's own product features rather than copy:
 
-The records are already shaped for the day that changes. Every product
-carries a `.ks-price` (reading "Free" today) and a `.ks-live-link`; when a
-product stops being free, the price says so and the CTA points at the Odoo
-shop instead of the marketplace. That is a change of destination, not a
-rebuild.
+| In Odoo | Used as |
+|---|---|
+| **eCommerce Media** (`product.image`) | the gallery on `/products/[slug]` and the lead image on its card |
+| **Attachments** (`ir.attachment` on the product) | the file a buyer is handed — Bernaum has one, ReplyFrame does not |
+| **Variant** (`product.product`) | what the sale order line points at |
+
+Both are served through this site rather than linked from Odoo: these
+products are not published on the Odoo website, so `/web/image/...` would
+404 for the public. `app/api/odoo/media` fetches them with the server-side
+read key and streams the bytes, against a strict allow-list of
+model/field pairs — a proxy that will fetch any binary of any model is an
+open door to every attachment in the database.
+
+**The checkout.** Both products are free, so there is nothing to pay and no
+payment step. What the flow collects is *who* — so the order is a record
+rather than an anonymous download, and so those people can be reached
+later. `/products/[slug]/checkout` runs three steps (details → review →
+confirmation) and on confirmation writes to Odoo:
+
+1. `res.partner` — reused if that email already exists, so a repeat
+   customer stays one contact.
+2. `sale.order` — origin naming this site, one line at 0.00.
+3. `action_confirm()` — a draft order is a quotation and would not reach
+   Sales reporting or any mailing automation, so this step is what makes a
+   free download count as a sale.
+
+Marketing consent is explicit, per order, and recorded on the order.
+
+The confirmation hands over the goods immediately: the marketplace link,
+plus — where the product has a file attached — a signed, expiring download
+link (`app/api/download`). The attachment is private in Odoo, so the route
+fetches it with the server key and decides access from an HMAC over the
+order reference, the attachment id and an expiry. Nothing is stored, and
+the link cannot be edited to reach a different attachment without breaking
+its signature.
+
+**When a product stops being free**, the server action refuses the order
+outright rather than quietly writing a zero-price sale — that line in
+`app/products/[slug]/checkout/actions.ts` is the one to change, and it
+should change to a payment step (Odoo's eCommerce module can take payment
+and deliver the download) rather than to a silent free order.
+
+**Walking the flow without writing to the real database:** in development
+only, `CHECKOUT_DEV_STUB=1` makes the action mint a plausible order
+reference and skip Odoo. It is ignored in production builds.
 
 ## Framer transcription notes
 

@@ -36,9 +36,13 @@ import type { Product } from "@/lib/products";
  *   service   .ks-number · .ks-description>p · ul.ks-highlights>li
  *             .ks-stat > span.ks-stat-value + span.ks-stat-label
  *             .ks-images>img[src][alt]
- *   product   the service shape, plus
- *             ul.ks-meta > li.ks-kind|.ks-platform|.ks-price
- *                          |.ks-link-label|.ks-live-link
+ *   product   the service shape, plus repeated .ks-body > h3 + p… + ul>li,
+ *             and ul.ks-meta > li.ks-kind|.ks-tagline|.ks-platform|.ks-price
+ *                              |.ks-license|.ks-published|.ks-updated
+ *                              |.ks-tags|.ks-link-label|.ks-live-link
+ *             Its gallery and its deliverable are NOT in the description:
+ *             they are Odoo's own eCommerce Media (product.image) and the
+ *             file attached to the product (ir.attachment).
  *   case study ul.ks-meta > li.ks-client|.ks-year|.ks-live-link|.ks-services
  *             .ks-overview · .ks-problem · .ks-solution · .ks-result
  *             .ks-testimonial > p… + footer>span.ks-name+span.ks-role
@@ -196,12 +200,18 @@ export type OdooService = {
   images: string[];
   list: string[];
   stat: { value: string; label: string } | null;
-  /** Product-only meta; empty strings on a service. See getProducts(). */
+  /** Product-only meta; empty on a service. See getProducts(). */
   kind: string;
+  tagline: string;
   platform: string;
   price: string;
+  license: string;
+  published: string;
+  updated: string;
+  tags: string[];
   linkLabel: string;
   link: string;
+  sections: Array<{ heading: string; body: string; items: string[] }>;
 };
 
 function parseServiceDescription(html: string) {
@@ -225,12 +235,53 @@ function parseServiceDescription(html: string) {
 
   // Only the products carry a ks-meta block; services parse these empty.
   const kind = text($(".ks-meta .ks-kind").first());
+  const tagline = text($(".ks-meta .ks-tagline").first());
   const platform = text($(".ks-meta .ks-platform").first());
   const price = text($(".ks-meta .ks-price").first());
+  const license = text($(".ks-meta .ks-license").first());
+  const published = text($(".ks-meta .ks-published").first());
+  const updated = text($(".ks-meta .ks-updated").first());
+  const tags = text($(".ks-meta .ks-tags").first())
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
   const linkLabel = text($(".ks-meta .ks-link-label").first());
   const link = text($(".ks-meta .ks-live-link").first());
 
-  return { number, description, images, list, stat, kind, platform, price, linkLabel, link };
+  // Long-form listing copy, same .ks-body shape the journal entries use:
+  // a heading, prose, and optionally a list.
+  const sections: Array<{ heading: string; body: string; items: string[] }> = [];
+  $(".ks-body").each((_, el) => {
+    const $el = $(el);
+    const items: string[] = [];
+    $el.find("li").each((_, li) => {
+      items.push(text(cheerio.load(li).root()));
+    });
+    sections.push({
+      heading: text($el.find("h3").first()),
+      body: paragraphs($el),
+      items,
+    });
+  });
+
+  return {
+    number,
+    description,
+    images,
+    list,
+    stat,
+    kind,
+    tagline,
+    platform,
+    price,
+    license,
+    published,
+    updated,
+    tags,
+    linkLabel,
+    link,
+    sections,
+  };
 }
 
 async function getProductsByCategory(
@@ -269,6 +320,16 @@ export async function getServices(): Promise<OdooService[]> {
 // --------------------------------------------------------------- products
 
 /**
+ * Where the browser fetches an Odoo binary. Odoo only serves /web/image/
+ * publicly for published records, and these products are not published on
+ * the Odoo website — so images go through this site's own proxy, which
+ * reads them with the server-side key. See app/api/odoo/media/route.ts.
+ */
+function mediaUrl(model: string, id: number, field = "image_1920"): string {
+  return `/api/odoo/media?model=${encodeURIComponent(model)}&id=${id}&field=${field}`;
+}
+
+/**
  * Shipped products — ReplyFrame and the Bernaum template — as distinct
  * from the client services above. They share the product.template model
  * and the same ks-* body, and add a ks-meta block: what kind of thing it
@@ -278,27 +339,98 @@ export async function getServices(): Promise<OdooService[]> {
  * isn't, the page says so without a code change (and can point at Odoo's
  * own shop instead of the marketplace).
  */
-export async function getProducts(): Promise<Product[]> {
+export const getProducts = cache(async (): Promise<Product[]> => {
   const parsed = await getProductsByCategory("getProducts", PRODUCTS_CATEGORY_ID);
+  const templateIds = parsed.map((p) => p.id);
 
-  const products = parsed.map((p) => ({
-    slug: slugify(p.title),
-    title: p.title,
-    kind: p.kind,
-    platform: p.platform,
-    price: p.price,
-    linkLabel: p.linkLabel || "View on the Marketplace",
-    link: p.link,
-    description: p.description,
-    highlights: p.list,
-    stat: p.stat,
-    images: p.images,
-  }));
+  // Three things live outside the description field and have to be asked
+  // for separately: the sellable variant (an order line takes a
+  // product.product, not a template), the eCommerce Media gallery, and any
+  // file attached to the product — the thing a buyer is handed.
+  const [variants, media, attachments] = await Promise.all([
+    callJson2<Array<{ id: number; product_tmpl_id: [number, string] }>>(
+      "product.product",
+      "search_read",
+      {
+        domain: [["product_tmpl_id", "in", templateIds]],
+        fields: ["id", "product_tmpl_id"],
+      },
+      ODOO_API_KEY
+    ),
+    callJson2<Array<{ id: number; name: string; product_tmpl_id: [number, string] }>>(
+      "product.image",
+      "search_read",
+      {
+        domain: [["product_tmpl_id", "in", templateIds]],
+        fields: ["id", "name", "product_tmpl_id"],
+        order: "sequence asc, id asc",
+      },
+      ODOO_API_KEY
+    ),
+    callJson2<
+      Array<{ id: number; name: string; res_id: number; mimetype: string; file_size: number }>
+    >(
+      "ir.attachment",
+      "search_read",
+      {
+        domain: [
+          ["res_model", "=", "product.template"],
+          ["res_id", "in", templateIds],
+          ["mimetype", "not like", "image/"],
+        ],
+        fields: ["id", "name", "res_id", "mimetype", "file_size"],
+        order: "id asc",
+      },
+      ODOO_API_KEY
+    ),
+  ]);
+
+  const products = parsed.map((p) => {
+    const variant = variants.find((v) => v.product_tmpl_id?.[0] === p.id);
+    const gallery = media.filter((m) => m.product_tmpl_id?.[0] === p.id);
+    const file = attachments.find((a) => a.res_id === p.id);
+
+    return {
+      slug: slugify(p.title),
+      title: p.title,
+      templateId: p.id,
+      // The variant is what a sale.order line points at. Falling back to the
+      // template id would silently create an order against the wrong record,
+      // so a product with no variant carries 0 and the checkout refuses it.
+      productId: variant?.id ?? 0,
+      kind: p.kind,
+      tagline: p.tagline,
+      platform: p.platform,
+      price: p.price,
+      license: p.license,
+      published: p.published,
+      updated: p.updated,
+      tags: p.tags,
+      linkLabel: p.linkLabel || "View on the Marketplace",
+      link: p.link,
+      description: p.description,
+      highlights: p.list,
+      stat: p.stat,
+      sections: p.sections,
+      // Media comes from Odoo's own eCommerce Media, served through the
+      // image proxy so a private record still renders without the API key
+      // ever reaching the browser.
+      images: gallery.map((m) => ({
+        src: mediaUrl("product.image", m.id),
+        alt: `${p.title} — ${m.name.replace(/\.[a-z0-9]+$/i, "")}`,
+      })),
+      // Bernaum has a remix-link PDF attached; ReplyFrame has none, and is
+      // delivered by the marketplace link alone.
+      deliverable: file
+        ? { attachmentId: file.id, name: file.name, sizeBytes: file.file_size }
+        : null,
+    };
+  });
 
   // A product without somewhere to get it is not a product page.
   assertParsed("getProducts", products.every((p) => p.link.length > 0));
   return products;
-}
+});
 
 export async function getProduct(slug: string): Promise<Product | undefined> {
   const all = await getProducts();

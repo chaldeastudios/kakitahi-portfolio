@@ -9,9 +9,10 @@ import { ArrowRight } from "./icons";
  * (zUVpU454J): /Off-white ground, 1px /Black border, 32px padding, and the
  * same two-arrow swap on hover.
  *
- * A product has no project imagery, so the well carries what someone
- * actually needs to judge it — what kind of thing it is, what it does, and
- * what it costs — in the space a project card gives its image.
+ * A product that has eCommerce Media in Odoo shows it, exactly as a project
+ * card shows its project image. One that doesn't — ReplyFrame, today — puts
+ * what someone needs in order to judge it in that same space instead: what
+ * kind of thing it is, what it does, and what it costs.
  */
 const EASE = [0.44, 0, 0.56, 1] as const;
 
@@ -21,12 +22,15 @@ export default function ProductCard({
   price,
   description,
   href,
+  image,
 }: {
   title: string;
   kind: string;
   price: string;
   description: string;
   href: string;
+  /** Lead image from Odoo's eCommerce Media, if the product has one. */
+  image?: { src: string; alt: string };
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -44,16 +48,30 @@ export default function ProductCard({
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
     >
-      <div className="flex min-h-[220px] w-full flex-col items-start justify-between gap-6 border border-border bg-white p-6">
-        <div className="flex w-full flex-col items-start gap-6">
-          <div className="flex items-center gap-[6px]">
-            <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
-            <span className="t-body-s">{kind}</span>
-          </div>
-          <p className="t-body-l w-full">{description}</p>
+      {image ? (
+        <div className="w-full overflow-hidden border border-border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <motion.img
+            src={image.src}
+            alt={image.alt}
+            className="h-[300px] w-full bg-lightgrey object-cover desktop:h-[420px]"
+            initial={false}
+            animate={{ scale: hovered ? 1.03 : 1 }}
+            transition={{ duration: 0.7, ease: EASE }}
+          />
         </div>
-        {price && <span className="t-body-s">{price}</span>}
-      </div>
+      ) : (
+        <div className="flex min-h-[220px] w-full flex-col items-start justify-between gap-6 border border-border bg-white p-6">
+          <div className="flex w-full flex-col items-start gap-6">
+            <div className="flex items-center gap-[6px]">
+              <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
+              <span className="t-body-s">{kind}</span>
+            </div>
+            <p className="t-body-l w-full">{description}</p>
+          </div>
+          {price && <span className="t-body-s">{price}</span>}
+        </div>
+      )}
 
       <div className="flex w-full items-center justify-between gap-8">
         <div className="flex flex-col items-start gap-[5px]">
