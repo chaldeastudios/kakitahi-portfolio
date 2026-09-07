@@ -11,7 +11,7 @@ import { HERO, SLIDESHOW_IMAGES } from "@/lib/content";
  *    Content (EzzCb_Qnf) sticky top 48px, h 380px, bg /White,
  *      border 0 1px 1px 0 /Border, padding 20px 0 20px 20px,
  *      vertical space-between
- *      - Image (jYTcFQY6x)  padding 0 20px, justify end -> ImageSlideshow 150x150
+ *      - Image (jYTcFQY6x)  padding 0 20px, justify end -> ImageSlideshow, 150x150 desktop / 135 tablet / 110 phone
  *      - Stack (c80e7bdfs)  width 82% -> the name, Geist 500
  *  Right (p4tK2ndtY)
  *    Frame10 (dUyJLCaCW)  h 380px, border-bottom 1px /Border
@@ -28,7 +28,7 @@ export default function Hero() {
           <Reveal className="flex w-full items-center justify-end px-5" y={16}>
             <ImageSlideshow
               images={SLIDESHOW_IMAGES}
-              className="h-[150px] w-[150px]"
+              className="h-[110px] w-[110px] tablet:h-[135px] tablet:w-[135px] desktop:h-[150px] desktop:w-[150px]"
             />
           </Reveal>
           <Reveal className="flex w-[82%] items-center justify-center overflow-hidden" y={32} duration={0.85}>

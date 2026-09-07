@@ -13,7 +13,8 @@ import { useEffect, useState } from "react";
  * The frame swap is an instant cut, not a fade/cross-dissolve — one image
  * replaces the previous one directly, no transition between them.
  *
- * Used at 150x150 (Hero) and 240x180 (Services).
+ * Used by the Hero at 150x150 desktop / 135 tablet / 110 phone, and by
+ * Services at 240x180.
  */
 export default function ImageSlideshow({
   images,
