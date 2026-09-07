@@ -23,8 +23,17 @@ export const metadata = {
 export default function NotFound() {
   return (
     <PageTemplate ground="white">
+      {/* Parent (gaVhvLwwa): 100vh, centred, gap 32px, 20px left/right
+          padding at every breakpoint. It holds the "404" block and the
+          button. */}
       <section className="flex h-screen w-full flex-col items-center justify-center gap-8 overflow-hidden bg-white px-5">
-        <Reveal className="flex w-[60%] items-center justify-center overflow-hidden" y={32} duration={0.85}>
+        {/* Inner (MggpUonTJ): 100% on phone, 80% on tablet, 60% on desktop.
+            The "404" itself is 100% of that. */}
+        <Reveal
+          className="flex w-full items-center justify-center overflow-hidden tablet:w-[80%] desktop:w-[60%]"
+          y={32}
+          duration={0.85}
+        >
           <h1 className="t-h1 w-full text-center">404</h1>
         </Reveal>
         <Reveal delay={0.12} y={16}>

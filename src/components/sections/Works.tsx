@@ -1,6 +1,6 @@
 import Button from "@/components/ui/Button";
-import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
-import ProjectCard from "@/components/ui/ProjectCard";
+import { Reveal } from "@/components/ui/Reveal";
+import ProjectGrid from "./ProjectGrid";
 import { WORKS } from "@/lib/content";
 
 /**
@@ -50,21 +50,8 @@ export default function Works() {
       </div>
 
       {/* Projects — spans both columns */}
-      <RevealGroup
-        className="grid grid-cols-1 tablet:col-span-2 tablet:grid-cols-2"
-        stagger={0.1}
-      >
-        {WORKS.projects.map((p) => (
-          <RevealItem key={p.slug} className="flex">
-            <ProjectCard
-              title={p.title}
-              subtitle={p.subtitle}
-              image={p.image}
-              href={`/projects/${p.slug}`}
-            />
-          </RevealItem>
-        ))}
-      </RevealGroup>
+      <ProjectGrid className="tablet:col-span-2" />
+
     </section>
   );
 }

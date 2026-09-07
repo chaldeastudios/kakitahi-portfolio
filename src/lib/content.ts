@@ -55,33 +55,6 @@ export const WORKS = {
     "I work with companies that treat design as a real function, not a final step. The ones that want someone who will tell them the truth about their product, stay through the hard calls, and care about what ships, not just what was designed.",
   cta: { label: "View All Projects", href: "/projects", newTab: false },
   slogan: "Quality work speaks for itself.",
-  /** The four items of the Framer "Projects" CMS collection (vUcj716Ux). */
-  projects: [
-    {
-      slug: "vantage",
-      title: "Vantage",
-      subtitle: "B2B Analytics Dashboard",
-      image: "https://framerusercontent.com/images/zrUsOCnxIW0avr3aOCVa3baytA.jpg",
-    },
-    {
-      slug: "shelt",
-      title: "Shelt",
-      subtitle: "Rental Platform for Young Professionals",
-      image: "https://framerusercontent.com/images/eTna1UaDrgPZgTkwA6IoAPqmU.jpg",
-    },
-    {
-      slug: "contra",
-      title: "Contra",
-      subtitle: "Freelancer Onboarding Flow",
-      image: "https://framerusercontent.com/images/Rl4bpS0JCILZpMT28CwORQH7c.jpg",
-    },
-    {
-      slug: "folio",
-      title: "Folio",
-      subtitle: "Mobile Expense Tracking App",
-      image: "https://framerusercontent.com/images/OPLn2tCsAxUaYk4T6FK5sNlzoaQ.jpg",
-    },
-  ],
 } as const;
 
 export const SERVICES = {
