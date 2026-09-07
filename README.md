@@ -68,15 +68,49 @@ source of truth for services, project case studies, and journal entries:
 
 | Odoo model | Holds |
 |---|---|
-| `product.template` (categ `Chaldea Studios Services`, id 7) | The 4 real service offerings |
-| `product.template` (categ `Chaldea Studios Products`, id 8) | ReplyFrame |
-| `blog.post` in blog `Portfolio` (id 2), tagged `Case Study` (tag id 1) | The 5 project case studies |
-| `blog.post` in blog `Our blog` (id 1), tagged `Journal` (tag id 2) | The 6 real journal entries |
+| `product.template` (categ `Chaldea Studios Services`, id 7) | The 4 real service offerings (ids 22–25) |
+| `product.template` (categ `Chaldea Studios Products`, id 8) | ReplyFrame (id 26) |
+| `blog.post` in blog `Portfolio` (id 2), tagged `Case Study` (tag id 1) | The 5 project case studies (ids 1–5) |
+| `blog.post` in blog `Our blog` (id 1), tagged `Journal` (tag id 2) | The 6 real journal entries (ids 6–11) |
 
-Every record was written with a predictable HTML shape — a sequence of
-`<div data-section="...">` blocks — which is both what a person editing
-the record in Odoo's own rich-text editor sees, and what
-`src/lib/odoo/content.ts` parses back out.
+**Where to edit them in Odoo.** Services and products are ordinary
+products: **Sales → Products → Products**, filter by category *Chaldea
+Studios Services* / *Chaldea Studios Products*; the site reads the
+**Description** field on the *Sales* tab. Case studies and journal entries
+are ordinary blog posts: **Website → Blog → Blog Posts**, in the *Portfolio*
+and *Our blog* blogs respectively. Adding a new service is adding a product
+in that category; it appears on the home page on the next request.
+
+### The content shape (read this before editing a record)
+
+Every record carries a predictable HTML structure that
+`src/lib/odoo/content.ts` parses back out. Structure is marked with `ks-*`
+**class names**, and every value lives in **visible content** — a `<li>`, a
+`<span>` — never in an attribute:
+
+| Record | Shape |
+|---|---|
+| Service / product | `.ks-number` · `.ks-description>p` · `ul.ks-highlights>li` · `.ks-stat > span.ks-stat-value + span.ks-stat-label` · `.ks-images>img[src][alt]` |
+| Case study | `ul.ks-meta > li.ks-client\|.ks-year\|.ks-live-link\|.ks-services` · `.ks-overview` · `.ks-problem` · `.ks-solution` · `.ks-result` · `.ks-testimonial > p… + footer > span.ks-name + span.ks-role` · `.ks-images` |
+| Journal entry | `ul.ks-meta > li.ks-category\|.ks-date\|.ks-author` · `.ks-intro` · repeated `.ks-body > h3 + p…` |
+
+`.ks-number`, `.ks-stat` and `.ks-images` are optional; the description is
+not.
+
+**Why classes and not `data-*`.** Odoo sanitises every HTML field on write,
+and on this instance it silently strips `data-*` attributes from `<div>`
+and `<ul>`: a record written as `<div data-section="number">01.</div>` reads
+back as `<div>01.</div>`. The write returns success and the markers are
+simply gone — which is exactly how an earlier version of this integration
+looked fully wired while rendering nothing. `class`, `id`, `style`, `title`,
+`<section>`, `<footer>`, `<ul>/<li>` and HTML comments all survive intact.
+Keeping the values as visible text has a second benefit: they're editable in
+Odoo's own rich-text editor without opening the code view.
+
+To keep that failure mode from ever being silent again, each fetcher runs an
+`assertParsed()` check: records fetched but parsed structurally empty throws,
+so `withOdooFallback` engages and the reason lands in the server log, rather
+than a section of the live site quietly rendering blank.
 
 **How it connects.** Odoo 19's External JSON-2 API
 (`POST /json/2/<model>/<method>`, `Authorization: bearer <api_key>`, no
