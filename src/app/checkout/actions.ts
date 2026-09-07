@@ -4,12 +4,14 @@ import {
   alreadyOrderedProductIds,
   findOrCreatePartner,
   placeOrder as writeOrder,
+  readOrderForConfirmation,
+  verifyPaystackPayment,
   type OrderLine,
 } from "@/lib/checkout/orders";
 import { createDownloadToken } from "@/lib/checkout/signing";
 import { getProducts } from "@/lib/odoo/content";
 import { withOdooFallback } from "@/lib/odoo/safe";
-import { PRODUCTS } from "@/lib/products";
+import { PRODUCTS, type Product } from "@/lib/products";
 import { isCheckoutConfigured } from "@/lib/odoo/config";
 import { getSession } from "@/lib/auth/session";
 
@@ -39,20 +41,26 @@ export type OrderedItem = {
 export type OrderResult =
   | {
       ok: true;
+      confirmed: true;
       reference: string;
       email: string;
       items: OrderedItem[];
       /** Lines dropped because this customer already has them. */
       skipped: Array<{ title: string; reason: string }>;
-      /** False when the order is a quotation waiting on payment. */
-      confirmed: boolean;
       amountTotal: number;
       currency: string;
-      /**
-       * Odoo's portal page for this order, where it gets paid. Present only
-       * on a priced order; the client redirects to it.
-       */
-      paymentUrl: string | null;
+    }
+  | {
+      ok: true;
+      confirmed: false;
+      /** Everything the browser needs to open Paystack's own inline modal
+       *  right here — no redirect to anywhere else. See CheckoutFlow. */
+      orderId: number;
+      reference: string;
+      amountMinor: number;
+      currencyCode: string;
+      email: string;
+      publicKey: string;
     }
   | { ok: false; error: string };
 
@@ -164,17 +172,22 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
       quantity: r.quantity,
     }));
 
-    // A free order is confirmed on the spot; a priced one is created as a
-    // quotation and stays there until the money is in. Nothing is handed
-    // over on an unconfirmed order.
+    if (dryRun && !isFree) {
+      return { ok: false, error: "The dev checkout stub only supports free orders." };
+    }
+
+    // A free order is confirmed on the spot. A priced one stays a draft in
+    // Odoo, but the customer never sees that — see createPaystackTransaction
+    // in lib/checkout/orders: this returns everything the browser needs to
+    // open Paystack's own inline modal right here, on this page.
     const order = dryRun
       ? {
           reference: `S${String(Date.now()).slice(-5)}`,
           orderId: 0,
           partnerId: 0,
           amountTotal: total,
-          confirmed: isFree,
-          paymentUrl: null,
+          confirmed: true,
+          payment: null,
         }
       : await writeOrder(
           lines,
@@ -183,52 +196,123 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
           isFree
         );
 
-    const items: OrderedItem[] = toOrder.map((r) => ({
-      slug: r.product.slug,
-      title: r.product.title,
-      kind: r.product.kind,
-      quantity: r.quantity,
-      // Only a confirmed order releases files.
-      downloadUrl:
-        order.confirmed && r.product.deliverable
+    if (order.confirmed) {
+      const items: OrderedItem[] = toOrder.map((r) => ({
+        slug: r.product.slug,
+        title: r.product.title,
+        kind: r.product.kind,
+        quantity: r.quantity,
+        downloadUrl: r.product.deliverable
           ? `/api/download?token=${encodeURIComponent(
               createDownloadToken(order.reference, r.product.deliverable.attachmentId)
             )}`
           : null,
-      deliverableName: r.product.deliverable?.name ?? null,
-      link: r.product.link,
-      linkLabel: r.product.linkLabel,
-    }));
+        deliverableName: r.product.deliverable?.name ?? null,
+        link: r.product.link,
+        linkLabel: r.product.linkLabel,
+      }));
 
-    // A priced order is paid on Odoo's own portal page for it, which is
-    // where the Paystack provider lives (odoo/addons/payment_paystack).
-    // This site never sees a card or a payment credential: it hands over an
-    // order and Odoo confirms it when the money lands, which is what
-    // releases the downloads.
-    if (!order.confirmed && order.amountTotal > 0 && !order.paymentUrl) {
+      return {
+        ok: true,
+        confirmed: true,
+        reference: order.reference,
+        email,
+        items,
+        skipped,
+        amountTotal: order.amountTotal,
+        currency,
+      };
+    }
+
+    if (!order.payment) {
       return {
         ok: false,
         error:
-          "Your order is saved, but the payment page could not be opened. Please try again, or get in touch and I'll send a payment link.",
+          "Your order is saved, but payment could not be started. Please try again, or get in touch and I'll sort out payment directly.",
       };
     }
 
     return {
       ok: true,
-      reference: order.reference,
+      confirmed: false,
+      orderId: order.orderId,
+      reference: order.payment.reference,
+      amountMinor: order.payment.amountMinor,
+      currencyCode: order.payment.currencyCode,
       email,
-      items,
-      skipped,
-      confirmed: order.confirmed,
-      amountTotal: order.amountTotal,
-      currency,
-      paymentUrl: order.paymentUrl,
+      publicKey: order.payment.publicKey,
     };
   } catch (err) {
     console.warn("[checkout] order failed:", err);
     return {
       ok: false,
       error: "Something went wrong placing that order. Please try again in a moment.",
+    };
+  }
+}
+
+/**
+ * The second half of a paid checkout: called once Paystack's own inline
+ * modal reports success, to have Odoo verify the payment and, only if that
+ * verification actually says so, confirm the order and release the files.
+ *
+ * The modal's own callback is never treated as proof of payment — it is
+ * only the cue to ask Odoo to check. verifyPaystackPayment() re-fetches the
+ * transaction from Paystack using the secret key that lives only in Odoo,
+ * and readOrderForConfirmation() then reads back what actually happened,
+ * which is the only thing this function trusts.
+ */
+export async function confirmPaystackPayment(
+  orderId: number,
+  reference: string
+): Promise<OrderResult> {
+  try {
+    await verifyPaystackPayment(reference);
+
+    const order = await readOrderForConfirmation(orderId);
+    if (!order || !order.confirmed) {
+      return {
+        ok: false,
+        error:
+          "Payment wasn't confirmed yet. If you were charged, get in touch and I'll sort it out — nothing will be double-charged.",
+      };
+    }
+
+    const catalogue = await withOdooFallback("getProducts", getProducts, PRODUCTS);
+    const items: OrderedItem[] = order.lines.map((line) => {
+      const product = catalogue.find((p: Product) => p.productId === line.productId);
+      return {
+        slug: product?.slug ?? "",
+        title: product?.title ?? "Item",
+        kind: product?.kind ?? "",
+        quantity: line.quantity,
+        downloadUrl: product?.deliverable
+          ? `/api/download?token=${encodeURIComponent(
+              createDownloadToken(order.reference, product.deliverable.attachmentId)
+            )}`
+          : null,
+        deliverableName: product?.deliverable?.name ?? null,
+        link: product?.link ?? "",
+        linkLabel: product?.linkLabel ?? "View",
+      };
+    });
+
+    return {
+      ok: true,
+      confirmed: true,
+      reference: order.reference,
+      email: order.partnerEmail,
+      items,
+      skipped: [],
+      amountTotal: order.amountTotal,
+      currency: order.currencyCode,
+    };
+  } catch (err) {
+    console.warn("[checkout] payment verification failed:", err);
+    return {
+      ok: false,
+      error:
+        "Something went wrong confirming that payment. If you were charged, get in touch and I'll sort it out.",
     };
   }
 }

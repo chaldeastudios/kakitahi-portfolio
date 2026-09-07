@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Paystack isn't a provider core Odoo knows about, so none of the
+         shared payment.method records (Card, Bank Transfer, M-Pesa) list it
+         in their provider_ids the way core links its own providers (Adyen,
+         Flutterwave, ...) to them. Left alone, Paystack installs and can be
+         enabled, but no payment method ever names it as a supported
+         provider — and if Paystack is the only enabled provider that would
+         have used one of these methods, that method stays archived, so it
+         never appears as a choice on a checkout at all.
+
+         This links Paystack into the three methods it actually supports
+         (const.DEFAULT_PAYMENT_METHOD_CODES) and reactivates them. Card's
+         brand children (Visa, Mastercard, Amex) don't carry provider_ids of
+         their own — they activate transitively whenever their primary
+         method (Card) is active, so only Card needs the explicit link. -->
+
+    <record id="payment.payment_method_card" model="payment.method">
+        <field name="provider_ids" eval="[(4, ref('payment_paystack.payment_provider_paystack'))]"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="payment.payment_method_bank_transfer" model="payment.method">
+        <field name="provider_ids" eval="[(4, ref('payment_paystack.payment_provider_paystack'))]"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="payment.payment_method_mpesa" model="payment.method">
+        <field name="provider_ids" eval="[(4, ref('payment_paystack.payment_provider_paystack'))]"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="payment.payment_method_visa" model="payment.method">
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="payment.payment_method_mastercard" model="payment.method">
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="payment.payment_method_amex" model="payment.method">
+        <field name="active" eval="True"/>
+    </record>
+
+</odoo>

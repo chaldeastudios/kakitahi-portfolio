@@ -10,23 +10,16 @@ import { callJson2 } from "@/lib/odoo/json2";
  * of lines, any product, nothing named in code. Adding a product to Odoo is
  * the whole of adding it to the shop.
  *
- * The products are free, so there is no payment step and nothing to settle.
- * What there *is* — and the reason this exists rather than a bare download
- * link — is a record: who took what, when, reachable later. That record is
- * an ordinary confirmed sale.order against an ordinary res.partner, exactly
- * what a paid order would be, so Sales reporting, the mailing lists in
- * Email Marketing, and any automation on sale.order see a free download and
- * a paid one alike.
+ * A free order is confirmed on the spot: action_confirm() right after
+ * create, same turn. A priced order gets the same sale.order, but stays a
+ * draft until it is actually paid — see createPaystackTransaction() and
+ * verifyPaystackPayment() below for how that happens without ever routing
+ * the customer through Odoo's own order/portal page first.
  *
- * The write sequence, verified against the live instance:
- *   1. res.partner  — reuse the existing contact for this email, so a
- *                     repeat customer stays one contact.
- *   2. history      — what this customer has already been given, which is
- *                     what makes "one per customer" enforceable.
- *   3. sale.order   — one order, one line per cart line, at 0.00.
- *   4. confirm      — action_confirm(), with a direct state write as the
- *                     fallback. A draft order is a quotation and does not
- *                     count as a sale, so this is what puts it in the funnel.
+ * Either way it ends up an ordinary confirmed sale.order against an
+ * ordinary res.partner, exactly what a paid order would be, so Sales
+ * reporting, the mailing lists in Email Marketing, and any automation on
+ * sale.order see a free download and a paid one alike.
  *
  * Inventory is deliberately not consulted. These are non-storable service
  * products in Odoo — there is no stock to check and nothing to run out of.
@@ -55,66 +48,210 @@ export type PlacedOrder = {
   partnerId: number;
   /** What Odoo priced it at, once its own pricelist had its say. */
   amountTotal: number;
-  /** False when it is a quotation awaiting payment. */
+  /** False when a payment is still needed. */
   confirmed: boolean;
   /**
-   * Odoo's own portal page for this order, where it can be paid. Present
-   * only on an unconfirmed, priced order. See paymentUrlFor().
+   * Everything the browser needs to open Paystack's own inline payment
+   * modal directly on this page. Present only on an unconfirmed, priced
+   * order. See createPaystackTransaction().
    */
-  paymentUrl: string | null;
+  payment: PaystackPaymentInit | null;
+};
+
+/** What the browser needs to open Paystack's inline modal for one order. */
+export type PaystackPaymentInit = {
+  /** The payment.transaction reference; Paystack echoes it back on success. */
+  reference: string;
+  /** The amount in Paystack's minor unit (kobo/cents/pesewas — always ×100). */
+  amountMinor: number;
+  currencyCode: string;
+  /** Paystack's public key. Not a secret — safe in the browser. */
+  publicKey: string;
 };
 
 type PartnerRow = { id: number };
 
-type AccessTokenRow = { id: number; access_token: string | false };
+const CURRENCY_MINOR_UNITS = 100;
 
 /**
- * Where a customer pays for an unconfirmed order.
+ * Opens a Paystack payment.transaction for this order and returns what the
+ * browser needs to pay it — no redirect, no Odoo portal page in between.
  *
- * Payment is Odoo's job, not this site's: the Paystack provider lives in
- * Odoo (see odoo/addons/payment_paystack), so the customer is handed to
- * Odoo's own portal page for their order, which offers whichever providers
- * are enabled and confirms the order itself once the money lands. Nothing
- * here holds a payment credential or decides whether a payment succeeded.
+ * There is no quotation step here on purpose: this site never sends anyone
+ * to Odoo's own order/portal view. The transaction is created directly
+ * (`create` — an ordinary public method), Paystack's own inline widget
+ * takes the payment right on this page using only the public key (not a
+ * secret), and a later verify call is what confirms it — see
+ * verifyPaystackPayment() and the `/payment/paystack/return` controller in
+ * odoo/addons/payment_paystack, which holds the one copy of the secret key
+ * and is the only thing that decides whether money actually moved.
  *
- * The portal URL needs the order's access token. Odoo's own portal.mixin
- * generates one lazily via `_portal_ensure_token()` — but that method's
- * leading underscore marks it private, and Odoo's RPC layer refuses to
- * call any method starting with `_` from outside the process
- * (odoo/service/model.py: get_public_method raises "Private methods ...
- * cannot be called remotely"). That was silently caught below and turned
- * into a missing payment link on every priced order.
- *
- * So the same effect — a token exists, one way or another — is reproduced
- * here with only public methods (`read`, `write`), generating the token in
- * the exact same format `_portal_ensure_token` itself would.
+ * The transaction still needs to exist in Odoo *before* the modal opens:
+ * verification works by looking up a payment.transaction by reference, so
+ * the reference handed to Paystack's widget has to be one Odoo already
+ * knows about.
  */
-async function paymentUrlFor(orderId: number): Promise<string | null> {
-  if (!ODOO_URL) return null;
+async function createPaystackTransaction(
+  orderId: number,
+  partnerId: number,
+  amountTotal: number
+): Promise<PaystackPaymentInit | null> {
   try {
-    const [row] = await callJson2<AccessTokenRow[]>(
+    const [order] = await callJson2<Array<{ currency_id: [number, string] | false }>>(
       "sale.order",
       "read",
-      { ids: [orderId], fields: ["access_token"] },
+      { ids: [orderId], fields: ["currency_id"] },
+      ODOO_WRITE_API_KEY
+    );
+    if (!order?.currency_id) return null;
+    const [currencyId, currencyCode] = order.currency_id;
+
+    const [provider] = await callJson2<Array<{ id: number; paystack_public_key: string | false }>>(
+      "payment.provider",
+      "search_read",
+      {
+        domain: [
+          ["code", "=", "paystack"],
+          ["state", "in", ["enabled", "test"]],
+        ],
+        fields: ["id", "paystack_public_key"],
+        limit: 1,
+      },
+      ODOO_WRITE_API_KEY
+    );
+    if (!provider?.paystack_public_key) return null;
+
+    // The specific payment method recorded against the transaction barely
+    // matters here — Paystack's own widget handles method choice (card,
+    // M-Pesa, bank transfer, ...) on its side regardless of this value.
+    // It only has to be *a* method Odoo already links to this provider.
+    const [method] = await callJson2<Array<{ id: number }>>(
+      "payment.method",
+      "search_read",
+      { domain: [["code", "=", "card"]], fields: ["id"], limit: 1 },
+      ODOO_WRITE_API_KEY
+    );
+    if (!method) return null;
+
+    const reference = `kakitahi-${randomUUID()}`;
+
+    await callJson2(
+      "payment.transaction",
+      "create",
+      {
+        vals_list: [
+          {
+            provider_id: provider.id,
+            payment_method_id: method.id,
+            reference,
+            amount: amountTotal,
+            currency_id: currencyId,
+            partner_id: partnerId,
+            operation: "online_redirect",
+            sale_order_ids: [[6, 0, [orderId]]],
+          },
+        ],
+      },
       ODOO_WRITE_API_KEY
     );
 
-    let accessToken = row?.access_token || "";
-    if (!accessToken) {
-      accessToken = randomUUID();
-      await callJson2(
-        "sale.order",
-        "write",
-        { ids: [orderId], vals: { access_token: accessToken } },
-        ODOO_WRITE_API_KEY
-      );
-    }
-
-    return `${ODOO_URL}/my/orders/${orderId}?access_token=${encodeURIComponent(accessToken)}`;
+    return {
+      reference,
+      amountMinor: Math.round(amountTotal * CURRENCY_MINOR_UNITS),
+      currencyCode,
+      publicKey: provider.paystack_public_key,
+    };
   } catch (err) {
-    console.warn("[odoo] could not build a payment link:", err);
+    console.warn("[odoo] could not open a Paystack transaction:", err);
     return null;
   }
+}
+
+/**
+ * Tells Odoo to verify a Paystack payment and, if it is genuine, apply it.
+ *
+ * This is a plain GET against the module's own public controller
+ * (`/payment/paystack/return`, auth='public') — the exact route Paystack's
+ * hosted redirect would have hit, just called directly instead of via a
+ * browser navigation. It re-fetches the transaction from Paystack itself
+ * using the secret key (which lives only in Odoo) rather than trusting
+ * whatever the browser's success callback said, and — because the
+ * transaction carries this order in `sale_order_ids` — Odoo's own
+ * payment/sale bridge (`_check_amount_and_confirm_order`) confirms the
+ * order the moment the transaction reaches "done".
+ *
+ * This call's own success or failure is not the verdict: whether the order
+ * actually got confirmed is checked separately afterwards, by reading it
+ * back — never by trusting that this request merely completed.
+ */
+export async function verifyPaystackPayment(reference: string): Promise<void> {
+  if (!ODOO_URL) return;
+  try {
+    await fetch(`${ODOO_URL}/payment/paystack/return?reference=${encodeURIComponent(reference)}`, {
+      method: "GET",
+      redirect: "manual",
+      cache: "no-store",
+    });
+  } catch (err) {
+    console.warn("[odoo] Paystack verify call failed:", err);
+  }
+}
+
+export type ConfirmedOrder = {
+  reference: string;
+  confirmed: boolean;
+  amountTotal: number;
+  currencyCode: string;
+  partnerEmail: string;
+  lines: Array<{ productId: number; quantity: number }>;
+};
+
+/** Re-reads an order after a payment attempt, to see what actually happened. */
+export async function readOrderForConfirmation(orderId: number): Promise<ConfirmedOrder | null> {
+  const [order] = await callJson2<
+    Array<{
+      name: string;
+      state: string;
+      amount_total: number;
+      currency_id: [number, string] | false;
+      partner_id: [number, string] | false;
+    }>
+  >(
+    "sale.order",
+    "read",
+    { ids: [orderId], fields: ["name", "state", "amount_total", "currency_id", "partner_id"] },
+    ODOO_WRITE_API_KEY
+  );
+  if (!order || !order.partner_id) return null;
+
+  const [partner] = await callJson2<Array<{ email: string | false }>>(
+    "res.partner",
+    "read",
+    { ids: [order.partner_id[0]], fields: ["email"] },
+    ODOO_WRITE_API_KEY
+  );
+
+  const orderLines = await callJson2<Array<{ product_id: [number, string] | false; product_uom_qty: number }>>(
+    "sale.order.line",
+    "search_read",
+    {
+      domain: [["order_id", "=", orderId]],
+      fields: ["product_id", "product_uom_qty"],
+      limit: 200,
+    },
+    ODOO_WRITE_API_KEY
+  );
+
+  return {
+    reference: order.name,
+    confirmed: order.state === "sale" || order.state === "done",
+    amountTotal: order.amount_total,
+    currencyCode: Array.isArray(order.currency_id) ? order.currency_id[1] : "",
+    partnerEmail: partner?.email || "",
+    lines: orderLines
+      .filter((l): l is typeof l & { product_id: [number, string] } => Array.isArray(l.product_id))
+      .map((l) => ({ productId: l.product_id[0], quantity: l.product_uom_qty })),
+  };
 }
 
 /** Find the contact for this email, or make one. */
@@ -286,6 +423,9 @@ export async function placeOrder(
     partnerId,
     amountTotal,
     confirmed: confirm,
-    paymentUrl: confirm || amountTotal <= 0 ? null : await paymentUrlFor(orderId),
+    payment:
+      confirm || amountTotal <= 0
+        ? null
+        : await createPaystackTransaction(orderId, partnerId, amountTotal),
   };
 }

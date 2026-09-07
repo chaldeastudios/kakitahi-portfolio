@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight } from "@/components/ui/icons";
-import { placeOrder, type OrderResult } from "@/app/checkout/actions";
+import { placeOrder, confirmPaystackPayment, type OrderResult } from "@/app/checkout/actions";
 import { useCart } from "@/lib/cart/CartProvider";
 import type { Product } from "@/lib/products";
 
@@ -25,12 +25,51 @@ import type { Product } from "@/lib/products";
  *
  * A free cart has no payment step: what the flow collects is who you are,
  * so the order is a real record rather than an anonymous download. A priced
- * cart places the same order as a quotation and then hands the customer to
- * Odoo's own portal page for it, where the Paystack provider takes the
- * payment. Odoo confirms the order when the money lands, and that is what
- * releases the files — this site never sees a card. Either way the cart is
- * emptied only after the server has answered, so a failure leaves it intact.
+ * cart never leaves this page either — Paystack's own inline modal opens
+ * right here (openPaystackModal below), and a success there is only the cue
+ * to ask Odoo to verify it (confirmPaystackPayment); only that verification
+ * is what confirms the order and releases the files. Either way the cart is
+ * emptied only once the server has actually confirmed something, so a
+ * failure or a closed payment window leaves it intact.
  */
+
+declare global {
+  interface Window {
+    PaystackPop?: {
+      setup(options: {
+        key: string;
+        email: string;
+        amount: number;
+        currency: string;
+        ref: string;
+        callback: (response: { reference: string }) => void;
+        onClose: () => void;
+      }): { openIframe: () => void };
+    };
+  }
+}
+
+let paystackScriptPromise: Promise<void> | null = null;
+
+/** Loads Paystack's inline widget once and reuses the same promise after. */
+function loadPaystackScript(): Promise<void> {
+  if (typeof window === "undefined") return Promise.reject(new Error("no window"));
+  if (window.PaystackPop) return Promise.resolve();
+  if (paystackScriptPromise) return paystackScriptPromise;
+
+  paystackScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => {
+      paystackScriptPromise = null;
+      reject(new Error("Paystack's payment script failed to load."));
+    };
+    document.body.appendChild(script);
+  });
+  return paystackScriptPromise;
+}
 
 const EASE = [0.44, 0, 0.56, 1] as const;
 
@@ -82,7 +121,17 @@ export default function CheckoutFlow({
     marketingOptIn: true,
   });
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<Extract<OrderResult, { ok: true }> | null>(null);
+  const [result, setResult] = useState<Extract<OrderResult, { ok: true; confirmed: true }> | null>(
+    null
+  );
+  // Set once Odoo has opened a Paystack transaction for this order. Kept
+  // around (rather than discarded after the first attempt) so that closing
+  // the payment window and trying again reopens the same transaction
+  // instead of placing a second order.
+  const [paystackPayment, setPaystackPayment] = useState<
+    Extract<OrderResult, { ok: true; confirmed: false }> | null
+  >(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const root = useRef<HTMLElement>(null);
 
@@ -118,27 +167,74 @@ export default function CheckoutFlow({
     setStep(1);
   }
 
+  /** Opens Paystack's own inline modal right here — no navigation, anywhere. */
+  function openPaystackModal(payment: Extract<OrderResult, { ok: true; confirmed: false }>) {
+    setError(null);
+    setModalOpen(true);
+    loadPaystackScript()
+      .then(() => {
+        const handler = window.PaystackPop!.setup({
+          key: payment.publicKey,
+          email: payment.email,
+          amount: payment.amountMinor,
+          currency: payment.currencyCode,
+          ref: payment.reference,
+          callback: (response) => {
+            setModalOpen(false);
+            // A successful callback is only the cue to ask Odoo to verify —
+            // it is never treated as proof of payment on its own.
+            startTransition(async () => {
+              const res = await confirmPaystackPayment(payment.orderId, response.reference);
+              // confirmPaystackPayment only ever resolves ok or confirmed —
+              // never the "payment required" shape — but the return type is
+              // shared with placeOrder, so that has to be checked here too.
+              if (res.ok && res.confirmed) {
+                setResult(res);
+                setStep(2);
+                clear();
+                setPaystackPayment(null);
+              } else if (!res.ok) {
+                setError(res.error);
+              }
+            });
+          },
+          onClose: () => setModalOpen(false),
+        });
+        handler.openIframe();
+      })
+      .catch(() => {
+        setModalOpen(false);
+        setError("Could not open the payment window. Please check your connection and try again.");
+      });
+  }
+
   function confirm() {
     setError(null);
+
+    // A transaction is already open from a previous attempt — closing the
+    // modal without paying shouldn't place a second order, just reopen it.
+    if (paystackPayment) {
+      openPaystackModal(paystackPayment);
+      return;
+    }
+
     startTransition(async () => {
       const res = await placeOrder({
         lines: cart.map((c) => ({ slug: c.product.slug, quantity: c.quantity })),
         ...details,
       });
-      if (res.ok) {
-        // A priced order hands back Odoo's portal payment page; the cart is
-        // cleared first so coming back from payment doesn't find it full.
-        if (res.paymentUrl) {
-          clear();
-          window.location.href = res.paymentUrl;
-          return;
-        }
-        setResult(res);
-        setStep(2);
-        clear();
-      } else {
+      if (!res.ok) {
         setError(res.error);
+        return;
       }
+      if (!res.confirmed) {
+        setPaystackPayment(res);
+        openPaystackModal(res);
+        return;
+      }
+      setResult(res);
+      setStep(2);
+      clear();
     });
   }
 
@@ -239,7 +335,7 @@ export default function CheckoutFlow({
                 <p className="t-body max-w-[520px]">
                   {total === 0
                     ? "There is nothing to pay. This is so the order is a real record, and so I know who is using what I make."
-                    : "You'll be taken to a secure payment page. Your files are released the moment the payment clears."}
+                    : "A secure payment window opens right here on the next step. Your files are released the moment the payment clears."}
                   {!account && (
                     <>
                       {" "}
@@ -358,21 +454,25 @@ export default function CheckoutFlow({
                   <button
                     type="button"
                     onClick={confirm}
-                    disabled={pending}
+                    disabled={pending || modalOpen}
                     className="t-button bg-yellow px-6 py-4 text-black disabled:opacity-70"
                   >
-                    {pending
-                      ? total === 0
-                        ? "Placing order…"
-                        : "Opening payment…"
-                      : total === 0
-                        ? "Place order →"
-                        : `Pay ${totalLabel} →`}
+                    {modalOpen
+                      ? "Waiting for payment…"
+                      : pending
+                        ? total === 0
+                          ? "Placing order…"
+                          : paystackPayment
+                            ? "Confirming payment…"
+                            : "Opening payment…"
+                        : total === 0
+                          ? "Place order →"
+                          : `Pay ${totalLabel} →`}
                   </button>
                   <button
                     type="button"
                     onClick={() => setStep(0)}
-                    disabled={pending}
+                    disabled={pending || modalOpen}
                     className="t-button underline underline-offset-4 disabled:opacity-70"
                   >
                     Back
@@ -390,27 +490,22 @@ export default function CheckoutFlow({
                 </div>
 
                 <div className="flex flex-col items-start gap-3">
-                  <p className="t-h4 max-w-[560px]">
-                    {result.confirmed
-                      ? `Order ${result.reference} is placed.`
-                      : `Order ${result.reference} is reserved.`}
-                  </p>
+                  <p className="t-h4 max-w-[560px]">Order {result.reference} is confirmed.</p>
                   <p className="t-body max-w-[520px]">
-                    {result.confirmed ? (
+                    {result.amountTotal > 0 ? (
+                      <>
+                        Payment of{" "}
+                        <strong>
+                          {result.currency} {result.amountTotal.toLocaleString("en-GB")}
+                        </strong>{" "}
+                        is on file against {result.email}. Your files are below; you don&apos;t
+                        have to wait for an email to get them.
+                      </>
+                    ) : (
                       <>
                         It is on file against {result.email}. Nothing was charged — the order
                         exists so this is on the record rather than an anonymous download. Your
                         files are below; you don&apos;t have to wait for an email to get them.
-                      </>
-                    ) : (
-                      <>
-                        It is held against {result.email} for{" "}
-                        <strong>
-                          {result.currency} {result.amountTotal.toLocaleString("en-GB")}
-                        </strong>
-                        . Nothing has been charged yet and nothing is released yet — I&apos;ll be
-                        in touch with payment details, and the moment payment clears the files
-                        appear in your account.
                       </>
                     )}
                   </p>
