@@ -16,7 +16,7 @@ import { Reveal } from "@/components/ui/Reveal";
  * unknown paths land here.
  */
 export const metadata = {
-  title: "404 — Paige Holden",
+  title: "404 — Isaiah Kakitahi",
   description: "That page could not be found.",
 };
 

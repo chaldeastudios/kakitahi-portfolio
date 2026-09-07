@@ -22,9 +22,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Paige Holden — Product Designer",
+  title: "Isaiah Kakitahi — Design, Technology & Strategy",
   description:
-    "I'm a product designer who works with early-stage companies and scaling teams. I turn complicated, half-finished experiences into products that feel obvious to use.",
+    "Designer and builder working with founders, small businesses and nonprofits. Websites, brand systems and AI-enabled tooling, through Chaldea Studios.",
 };
 
 export default function RootLayout({

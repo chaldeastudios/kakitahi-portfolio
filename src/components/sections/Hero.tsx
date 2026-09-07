@@ -12,7 +12,7 @@ import { HERO, SLIDESHOW_IMAGES } from "@/lib/content";
  *      border 0 1px 1px 0 /Border, padding 20px 0 20px 20px,
  *      vertical space-between
  *      - Image (jYTcFQY6x)  padding 0 20px, justify end -> ImageSlideshow 100x100
- *      - Stack (c80e7bdfs)  width 82% -> "Paige Holden", Geist 500
+ *      - Stack (c80e7bdfs)  width 82% -> the name, Geist 500
  *  Right (p4tK2ndtY)
  *    Frame10 (dUyJLCaCW)  h 380px, border-bottom 1px /Border
  *    Intro  (zRYQQVdNt)   minHeight 340px, bg /Black, gap 80px, padding 24px
@@ -66,7 +66,7 @@ export default function Hero() {
             <Reveal y={14}>
               <p className="t-h6">{HERO.clientsLabel}</p>
             </Reveal>
-            <ClientMarquee logos={HERO.clients} />
+            <ClientMarquee clients={HERO.clients} />
           </div>
         </div>
       </div>

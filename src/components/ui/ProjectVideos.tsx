@@ -18,7 +18,7 @@ import { useState } from "react";
  * dark overlay and 60px play mark, and only loads the real iframe once
  * the viewer clicks. Nothing is requested from YouTube until then.
  *
- * Both fields are optional in the CMS (Shelt carries no upload), so each
+ * Both fields are optional in the dataset, so each
  * renders only when its value is present.
  */
 export default function ProjectVideos({

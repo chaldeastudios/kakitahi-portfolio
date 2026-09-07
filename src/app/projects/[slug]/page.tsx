@@ -52,9 +52,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const project = getProject(slug);
-  if (!project) return { title: "Project not found — Paige Holden" };
+  if (!project) return { title: "Project not found — Isaiah Kakitahi" };
   return {
-    title: `${project.title} — Paige Holden`,
+    title: `${project.title} — Isaiah Kakitahi`,
     description: project.shortOverview,
   };
 }

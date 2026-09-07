@@ -8,7 +8,7 @@ import { ABOUT } from "@/lib/content";
  *  Left (NF8W7OjRv)  bg /Off-white, border-right 1px /Border,
  *                    padding 24px 24px 180px 24px
  *    Tagline (m8H4eZiBo) sticky top 72px, gap 6px ->
- *      10x10 /Yellow square + "About Paige Holden" (Tagline style)
+ *      10x10 /Yellow square + the About tagline (Tagline style)
  *  Right (Gwd4jUdU5)
  *    Frame (SMALEuFDC)          h 100px spacer
  *    AboutDescription (VSVGx9nhy) bg /White, gap 24px, padding 24px 20px

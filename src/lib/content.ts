@@ -1,6 +1,15 @@
 /**
- * All copy transcribed verbatim from the Framer project's home page ("/").
- * Do not paraphrase — these strings are word-for-word from the design.
+ * Site copy — Isaiah Kakitahi / Chaldea Studios.
+ *
+ * Sourced from the chaldeastudios/kakitahi repo (src/data/content.js, the
+ * Studio/Home/Contact pages), which was itself built from a crawl of
+ * kakitahi.com. Every claim here traces back to that material: the five
+ * 2025 client projects, the four client quotes, the stats, the services,
+ * and the bio. Nothing about the person or the business is invented.
+ *
+ * Each string is written to the same shape and roughly the same length as
+ * the string it replaces, so the layout and component structure are
+ * untouched.
  */
 
 export const NAV_LINKS = [
@@ -13,129 +22,129 @@ export const NAV_LINKS = [
 ] as const;
 
 export const HERO = {
-  name: "Paige Holden",
+  name: "Isaiah Kakitahi",
   intro:
-    "I'm a product designer who works with early-stage companies and scaling teams. I turn complicated, half-finished experiences into products that feel obvious to use. Eight years in. Thirty-four products shipped. I come in when the stakes are real and the margin for bad UX is zero.",
+    "I'm a designer and builder who works with founders, small businesses, and nonprofits. I turn scattered, half-built ideas into websites and brand systems that feel obvious to use. Five client projects in 2025. Two countries. I come in when the work has to hold up commercially, not just look right.",
   introCta: { label: "Get in Touch", href: "/#contact", newTab: false },
   clientsHeading:
-    "I work with companies that treat design as a business decision, not a polish pass at the end.",
+    "I work with people who treat design as a business decision, not a coat of paint applied at the end.",
   clientsLabel: "Among My Clients:",
+  /**
+   * The five real 2025 clients. The template marqueed logo images; no logo
+   * files exist for these clients, so the same marquee carries their
+   * wordmarks as text instead of inventing or borrowing marks.
+   */
   clients: [
-    { name: "Adobe", src: "https://framerusercontent.com/images/rhY4zGUtguHySsyEdimoMc.png" },
-    { name: "Amd", src: "https://framerusercontent.com/images/OcPsR3Y3aLmxf3wdicdZWQfkw.png" },
-    { name: "Behance", src: "https://framerusercontent.com/images/wiDLGZ2swAuv0l3XTTum7ApyI.png" },
-    { name: "Airbnb", src: "https://framerusercontent.com/images/FOQtP3aT2DdlVCJGVkCwz2XEvVE.png" },
-    { name: "Meta", src: "https://framerusercontent.com/images/xDg4cRgjhnVRgRyUGDAyw13UcUc.png" },
-    { name: "Netflix", src: "https://framerusercontent.com/images/4KMLmk96nR1W7YrLBXmJMpXzPg.png" },
-    { name: "Microsoft", src: "https://framerusercontent.com/images/oupiINRnsljpNWM4A2RRmYAo0Sk.png" },
-    { name: "Openai", src: "https://framerusercontent.com/images/wnpTJQySboVNbyTBzHBlP8iw.png" },
-    { name: "Google", src: "https://framerusercontent.com/images/X6uGDbqRvdEl9JCeRjccn49Sg.png" },
+    { name: "KariKari" },
+    { name: "Southside Akwana Records" },
+    { name: "Veridian Tech Co." },
+    { name: "Kaktus Limited" },
+    { name: "Karitas Karisimbi Foundation" },
   ],
 } as const;
 
 export const ABOUT = {
-  tagline: "About Paige Holden",
+  tagline: "About Isaiah Kakitahi",
   paragraphs: [
-    "I started doing this because most product teams hire designers too late and ask them to fix something that was already decided. I got good at coming in earlier.",
-    "I've spent eight years embedded in product teams, mostly at the point where something works but nobody knows how to use it yet. That gap between functional and intuitive is where I do my best work.",
-    "I don't hand off decks and disappear. I sit in the research, the edge cases, the handoff, and the post-launch cleanup. The founders I work with tend to come back not because the first project went well, but because they stopped wanting to do it without me.",
+    "I started the way most self-taught practice starts — learning by doing, breaking things, fixing them, getting curious about why some things felt right and others didn't. Over time that curiosity turned into a real craft.",
+    "I run Chaldea Studios alongside a finance and marketing double major at Strathmore University. That second half taught me structure, limits, and trade-offs — how systems behave under pressure, and how people actually decide. Both carry into the work.",
+    "Design isn't a big dramatic process for me. It's closer to paying attention: noticing when something feels cluttered, is trying too hard, or isn't saying quite enough. I'm most interested in work that doesn't shout — interfaces that move calmly, brands that don't overexplain themselves.",
   ],
 } as const;
 
 export const STATS = [
-  { start: 0, end: 34, prefix: "", suffix: "+", label: "Products Shipped Since 2018" },
-  { start: 0, end: 8, prefix: "", suffix: "+", label: "Years of Experience" },
-  { start: 0, end: 3, prefix: "$", suffix: "M+", label: "Fundings for the startups" },
-  { start: 0, end: 99, prefix: "", suffix: "%", label: "Client Satisfaction Rate" },
+  { start: 0, end: 5, prefix: "", suffix: "+", label: "Client Projects Delivered in 2025" },
+  { start: 0, end: 100, prefix: "", suffix: "%", label: "Positive Client Feedback" },
+  { start: 0, end: 50, prefix: "", suffix: "+", label: "Users on ReplyFrame in Two Months" },
+  { start: 0, end: 2, prefix: "", suffix: "", label: "Countries the Work Spans — Kenya & Uganda" },
 ] as const;
 
 export const WORKS = {
   heading: "Works",
   description:
-    "I work with companies that treat design as a real function, not a final step. The ones that want someone who will tell them the truth about their product, stay through the hard calls, and care about what ships, not just what was designed.",
+    "I work with people who treat design as a real function, not a final step. The ones who want someone who will tell them the truth about the idea, stay through the hard calls, and care about what ships, not just what was designed.",
   cta: { label: "View All Projects", href: "/projects", newTab: false },
   slogan: "Quality work speaks for itself.",
 } as const;
+
+const IMG = "https://framerusercontent.com/images/";
 
 export const SERVICES = {
   heading: "Services",
   description:
     "I don't offer packages. I take on work that has a real problem at the center of it and stay until it's solved. I've learned that the problem on the brief is rarely the actual problem. Here's where I tend to start.",
   cta: { label: "Book A Call", href: "/#contact", newTab: false },
-  /** The four items of the Framer "Services" CMS collection (G_Idfj5qX).
-   *  images[] are that item's Image 1-4 — the four frames the
-   *  Image Slideshow component cycles through. */
   items: [
     {
       number: "01.",
-      title: "Product Design",
+      title: "Website Design & Development",
       description:
-        "I work from the first screen to the shipped product. Most designers come in after the decisions are made. I come in before, when there's still room to shape the problem, not just the solution. That's where the real work happens.",
+        "Every site is scoped individually — layout, content architecture, responsiveness, and performance — whether that's a simple personal-brand page or a full CMS-driven build. Structurally clean, and built to stay that way after handover.",
       images: [
-        "https://framerusercontent.com/images/zrUsOCnxIW0avr3aOCVa3baytA.jpg",
-        "https://framerusercontent.com/images/UMGv87ZShvEYBE1rFDuBu8ZsXYc.jpg",
-        "https://framerusercontent.com/images/MuGtfmYWYKQJg0WGHTtSP0ozqGA.jpg",
-        "https://framerusercontent.com/images/psiiOgGGv8HgvX1VNbzUieT4t1w.jpg",
+        IMG + "qSbP5d1N7frJ767lfsDA5zMlCQ.png",
+        IMG + "Fpyp5QZCMdQE8XvNXoNPjxl3U.png",
+        IMG + "utlrkOA0ZrqeRmJ9SZTbFsPVg8.png",
+        IMG + "J2P6nMgtq4X7USnFotPtPhZOus.png",
       ],
       list: [
-        "User flows and journey mapping",
-        "Information architecture",
-        "Interaction and visual design",
-        "Design systems that teams actually use",
+        "Layout and content architecture",
+        "Responsive and mobile passes",
+        "CMS structure clients can actually run",
+        "Performance and QA before launch",
       ],
     },
     {
       number: "02.",
-      title: "UX Research",
+      title: "Brand & Visual Identity",
       description:
-        "The team's assumptions are usually wrong. Not because they're bad at their jobs, but because they're too close to it. I run structured research that cuts through the debate and gets everyone looking at the same truth. The output is a decision, not a slide deck.",
+        "Logo, colour, type, and tone worked out together, so a brand reads as one coherent thing across a website, its socials, and everything else it touches. Considered rather than templated.",
       images: [
-        "https://framerusercontent.com/images/N4eqh7sXVmNcrn4W6gROjWn6wc.jpg",
-        "https://framerusercontent.com/images/7yFubMBijoix785JFl5kgS6n0.jpg",
-        "https://framerusercontent.com/images/D9yRVfkwWs5R50QWM1HMoMApzD4.jpg",
-        "https://framerusercontent.com/images/zrUsOCnxIW0avr3aOCVa3baytA.jpg",
+        IMG + "zFLkW6oOjRSoMVej6nE4gfRWdo.png",
+        IMG + "l6wmIAMt9QPZoQMIvJIxkWHcyTc.png",
+        IMG + "9XTL9szQaMBytrDBH2H4JqPw3k.png",
+        IMG + "6DZyEJB7smR8ziOorwtLvNSnU4.png",
       ],
       list: [
-        "Moderated user testing",
-        "Interview synthesis",
-        "Usability audits",
-        "Jobs-to-be-done mapping",
+        "Logo and wordmark systems",
+        "Colour and type direction",
+        "Tone of voice and naming",
+        "Applied across site and socials",
       ],
     },
     {
       number: "03.",
-      title: "Design Advisory",
+      title: "Automation & AI-Enabled Systems",
       description:
-        "For founders who know they need design to be a real function but haven't built it yet. I help you hire right, set the standard early, and avoid the mistakes that are expensive to fix once the team is in place.",
+        "Custom integrations, APIs, payment logic, and AI agents. ReplyFrame — a comment-and-review plugin with its own SaaS-style backend — runs live in the Framer Marketplace, and AI risk-assessment tooling is in delivery for a boutique advisory firm.",
       images: [
-        "https://framerusercontent.com/images/MuGtfmYWYKQJg0WGHTtSP0ozqGA.jpg",
-        "https://framerusercontent.com/images/psiiOgGGv8HgvX1VNbzUieT4t1w.jpg",
-        "https://framerusercontent.com/images/N4eqh7sXVmNcrn4W6gROjWn6wc.jpg",
-        "https://framerusercontent.com/images/7yFubMBijoix785JFl5kgS6n0.jpg",
+        IMG + "pNLypb7Wpxof64WLy9dLPDO4xnc.png",
+        IMG + "RQ0zdd8V10J8K276Dap2nvaw6k.png",
+        IMG + "IbJRMYSgT67BYxkR59babBrdY.png",
+        IMG + "o2549oWvSGPuCj5iGLzKY0DgBlY.png",
       ],
       list: [
-        "Hiring and team structure",
-        "Design critique and process",
-        "Tooling and workflow setup",
-        "Founder-level design thinking",
+        "API and third-party integrations",
+        "Booking and data-driven logic",
+        "AI-assisted internal tooling",
+        "Products shipped, not experiments",
       ],
     },
     {
       number: "04.",
-      title: "Redesign",
+      title: "Design Partnership",
       description:
-        "Most redesigns fail because they start with the interface instead of the problem. I start with why the current product isn't working and build forward from there. The goal is never a new look. It's a product that finally does what it was supposed to.",
+        "An ongoing retainer for people who need continuous support across more than one site rather than a single delivery — new sections, priority turnaround, and someone who already knows the system instead of relearning it each time.",
       images: [
-        "https://framerusercontent.com/images/psiiOgGGv8HgvX1VNbzUieT4t1w.jpg",
-        "https://framerusercontent.com/images/N4eqh7sXVmNcrn4W6gROjWn6wc.jpg",
-        "https://framerusercontent.com/images/7yFubMBijoix785JFl5kgS6n0.jpg",
-        "https://framerusercontent.com/images/D9yRVfkwWs5R50QWM1HMoMApzD4.jpg",
+        IMG + "kFRYEnVn5bWeRYEoW3AlrlcPg2M.png",
+        IMG + "E7rZMWfeggYeBUCpYDelsmUaQs.png",
+        IMG + "OdjLuEU2YaCfWTn79Uv23EHizs.png",
+        IMG + "n5vta4ihBQLaipun8N4fbZQcJ0.png",
       ],
       list: [
-        "Full product audits",
-        "User research and problem framing",
-        "End-to-end redesign",
-        "Handoff and implementation support",
+        "Continuous iteration, not one delivery",
+        "Priority turnaround",
+        "Support across multiple sites",
+        "Scope agreed monthly, upfront",
       ],
     },
   ],
@@ -146,33 +155,33 @@ export const TESTIMONIALS = {
   items: [
     {
       quote:
-        "Paige figured out in two weeks what we'd been arguing about for six months. She ran the research, reframed the problem, and gave us a direction the whole team could stand behind. We shipped faster after she left than we did while she was there.",
-      name: "Ryan Callahan",
-      role: "Head of Product, XYZ",
+        "We have had the pleasure of working with Chaldea Studios across several projects, including our e-commerce site and multiple business websites. Their creativity, technical expertise, and willingness to listen and adapt were key to bringing our visions to life. Finding a partner who combines design excellence with genuine collaboration is rare.",
+      name: "Saddiq Mwai",
+      role: "KariKari",
     },
     {
       quote:
-        "Paige doesn't just design. She thinks. She asks the questions nobody else is asking, pushes back when the brief is wrong, and delivers something that actually holds up in the real world. We brought her in for one project and haven't stopped working with her since.",
-      name: "Kate Morrison",
-      role: "Co-founder, ABC",
+        "Collaborating with Chaldea Studios was a pure joy! They paid attention to our needs and transformed our concepts into a breathtaking actuality. Their ideas and originality in their designs sincerely distinguish them.",
+      name: "Sonia Kentaro",
+      role: "Founder, Veridian Tech Co.",
     },
     {
       quote:
-        "We were stuck. Six months of internal debate, three rounds of wireframes, and nothing we could agree on. Paige came in, ran the research, reframed the whole problem, and gave us a direction in two weeks. I wish we'd called her six months earlier.",
-      name: "Ryan Callahan",
-      role: "Head of Product, XYZ",
+        "Isaiah really understood what Southside Akwana Records is about. He took our vision and turned it into a brand that feels authentic, sharp, and confident.",
+      name: "Steven Clement",
+      role: "Southside Akwana Records",
     },
     {
       quote:
-        "I've worked with designers who are good at their craft and designers who are good at the business. Dana is the only one I've met who's genuinely both. She came in, understood the problem faster than anyone on our team, and shipped something we're still proud of.",
-      name: "Tom Whitfield",
-      role: "CEO, KLLM",
+        "I really appreciate the way it feels very open-ended, letting different kinds of people explore as much as they feel curious, with a little something for everyone. It's honestly genius, I'm grateful for this collaboration.",
+      name: "John Muhumuza",
+      role: "Managing Director, Kaktus Limited",
     },
     {
       quote:
-        "She moves fast without cutting corners. She communicates better than most full-time employees I've managed. And the work she shipped for us directly contributed to a funding round we closed three months later. That's not something I say lightly.",
-      name: "Chris Aldren",
-      role: "CPO, XYZ",
+        "What truly stood out was their responsiveness and commitment to getting every detail just right — no request was ever too small, and every piece of feedback was welcomed with a positive attitude. They translated our ideas into beautifully designed, functional websites that perfectly reflect our brands.",
+      name: "Saddiq Mwai",
+      role: "Karitas Karisimbi Foundation",
     },
   ],
   outro: "I want your testimonial to be listed here. Let's work together :)",
@@ -184,7 +193,7 @@ export const CTA = {
   heading: "Let's create something real together.",
   description:
     "Not sure where to start? That's what the first call is for. Bring the brief and we'll figure out the rest.",
-  button: { label: "Schedule A Call", href: "cal.com", newTab: true },
+  button: { label: "Schedule A Call", href: "https://linkedin.com/in/kakitahi", newTab: true },
   image: "https://framerusercontent.com/images/z8oIkjRrZgpvPdmwICKinITmNw.jpg",
 } as const;
 
@@ -194,36 +203,35 @@ export const FOOTER = {
     { label: "About", href: "/#about", newTab: false },
     { label: "Projects", href: "/#works", newTab: false },
     { label: "Services", href: "/#services", newTab: false },
-    { label: "Projects", href: "/#works", newTab: false },
-    { label: "Testimonials", href: "/#about", newTab: false },
-    { label: "Contact", href: "cal.com", newTab: true },
+    { label: "Archive", href: "/archive", newTab: false },
+    { label: "Testimonials", href: "/#testimonials", newTab: false },
+    { label: "Contact", href: "/#contact", newTab: false },
   ],
   contactLinks: [
-    { label: "123 street, New York, USA", href: "", newTab: false },
-    { label: "hello@paige-holden.com", href: "mailto:hello@paige-holden.com", newTab: false },
-    { label: "Behance", href: "linkedin.com", newTab: false },
-    { label: "LinkedIn", href: "linkedin.com", newTab: false },
-    { label: "Instagram", href: "instagram.com", newTab: false },
-    { label: "X/Twitter", href: "x.com", newTab: false },
+    { label: "Nairobi, Kenya", href: "", newTab: false },
+    { label: "Kampala, Uganda", href: "", newTab: false },
+    { label: "Strathmore University", href: "", newTab: false },
+    { label: "Chaldea Studios", href: "", newTab: false },
+    { label: "LinkedIn", href: "https://linkedin.com/in/kakitahi", newTab: true },
+    { label: "X / Twitter", href: "https://x.com/kakitahiisaiah", newTab: true },
   ],
   copyright:
-    "Copyright © 2026 Paige Holden. All RIghts Reserved. Website designed by Fazal.",
-  copyrightHref: "https://fazal.site",
+    "Copyright © 2026 Isaiah Kakitahi. All Rights Reserved. Built by Chaldea Studios.",
+  copyrightHref: "https://linkedin.com/in/kakitahi",
   legalLinks: [
-    { label: "Privacy Policy", href: "https://paige-holden.framer.website/privacy-policy" },
-    { label: "Terms & Conditions", href: "https://paige-holden.framer.website/terms-and-conditions" },
+    { label: "Privacy Policy", href: "/privacy-policy" },
+    { label: "Terms & Conditions", href: "/terms-and-conditions" },
   ],
 } as const;
 
 /**
- * The Hero's Image Slideshow frames. The Framer component (D1hQeRBgs) is
- * built as four variants it cycles through; the bound images are not
- * exposed by the MCP, so these are the first four project images from the
- * Projects CMS collection.
+ * The Hero's Image Slideshow frames — the four portraits, in the order
+ * supplied. Drop the files in public/hero/ as 1.jpg .. 4.jpg; they cannot
+ * be written from this session, so the paths are wired ahead of the files.
  */
 export const SLIDESHOW_IMAGES = [
-  "https://framerusercontent.com/images/zrUsOCnxIW0avr3aOCVa3baytA.jpg",
-  "https://framerusercontent.com/images/eTna1UaDrgPZgTkwA6IoAPqmU.jpg",
-  "https://framerusercontent.com/images/Rl4bpS0JCILZpMT28CwORQH7c.jpg",
-  "https://framerusercontent.com/images/OPLn2tCsAxUaYk4T6FK5sNlzoaQ.jpg",
+  "/hero/1.jpg",
+  "/hero/2.jpg",
+  "/hero/3.jpg",
+  "/hero/4.jpg",
 ] as const;

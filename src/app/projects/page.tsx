@@ -16,9 +16,9 @@ import Cta from "@/components/sections/Cta";
  *     Cta         (ECWjKnVyA) 100vh, the shared closing panel
  */
 export const metadata: Metadata = {
-  title: "Projects — Paige Holden",
+  title: "Projects — Isaiah Kakitahi",
   description:
-    "Selected product design work: Vantage, Shelt, Contra and Folio.",
+    "Selected 2025 client work: KariKari, Southside Akwana Records, Veridian Tech Co., Kaktus Limited and Karitas Karisimbi Foundation.",
 };
 
 export default function ProjectsPage() {

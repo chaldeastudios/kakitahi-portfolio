@@ -14,7 +14,7 @@ import { FOOTER } from "@/lib/content";
  *       Frame81 : border-left 1px — 6 nav Footer Links (variant v9d6R1wSg)
  *       Frame80 : 360x282, border-left 1px — 6 contact Footer Links
  *   Frame84   : 2-col grid, border-bottom 1px, backgroundColor /White
- *     Frame86 : padding 14px 24px — copyright (Body S) -> https://fazal.site
+ *     Frame86 : padding 14px 24px — copyright (Body S), linked
  *     Frame85 : border-left 1px, padding 14px 24px, justify end, gap 19px —
  *               Privacy Policy + Terms & Conditions (variant ZtBkierFB)
  *   Stack     : h 350px, backgroundColor /White, overflow clip — the
