@@ -10,8 +10,8 @@ sourced from the `chaldeastudios/kakitahi` repo.
   study detail, one per project), `/products` (listing), `/products/[slug]`
   (one per product), `/cart`, `/checkout` (the three-step order flow),
   `/account` + `/account/orders/[reference]` (a customer's own orders),
-  `/account/login`, `/journal` (listing), `/journal/[slug]` (one per entry),
-  `/404`
+  `/account/login`, `/admin` (staff only), `/journal` (listing),
+  `/journal/[slug]` (one per entry), `/404`
 
 ```bash
 npm install
@@ -34,7 +34,10 @@ src/
   app/account/             sign in, the account, and one order
   lib/auth/session.ts      the signed session cookie (no session store)
   lib/auth/accounts.ts     portal users in Odoo: sign in, sign up
+  app/admin/               staff-only: prices, client projects, orders
+  lib/auth/staff.ts        the /admin gate (Odoo's internal-user flag)
   lib/odoo/orders.ts       a customer's own orders, scoped to their partner
+  lib/odoo/projects.ts     client projects and their tasks
   lib/cart/CartProvider    the cart: slugs + quantities, in localStorage
   lib/checkout/orders.ts   partner, purchase history, confirmed sale.order
   lib/checkout/signing.ts  HMAC for the download links
@@ -230,6 +233,33 @@ digital goods with no stock to reserve, so a server cart would protect
 nothing while leaving orphaned draft orders behind every browser that
 wandered off. The order is created once, at checkout.
 
+### Pricing is live, and Odoo decides it
+
+**The price a customer pays is `product.template.list_price`, read on every
+request.** It was briefly a string in the description (`.ks-price`), which
+meant changing the price in Odoo changed nothing on the site — a real bug,
+and the reason this section exists. Price is data now, not content:
+
+- Product pages, cards, the cart and the checkout all show Odoo's number,
+  formatted with Odoo's currency. Zero reads "Free".
+- **Order lines are sent with no `price_unit` at all.** Odoo prices each
+  line itself from the product and the customer's pricelist. A price sent
+  from the site would be a copy, and a copy is exactly how something ends up
+  billed at yesterday's number.
+- A **free** order is confirmed immediately, as before. A **priced** order is
+  created as a *quotation* and left there: nothing is charged, and nothing
+  is released. Downloads are gated on the order reaching `sale`/`done`, so
+  a customer gets their files when the order is confirmed — which, until a
+  payment provider is enabled, is you confirming it in `/admin` once the
+  money lands.
+
+**On taking payment properly:** the Odoo instance has no live payment
+provider — only *Demo* (test mode) and *Cash on Delivery* are enabled;
+*Wire Transfer* exists but is disabled. Enable a real provider (or Wire
+Transfer, for bank details) in Odoo and the checkout can grow a payment step
+that hands off to it. Until then the flow above is the honest version:
+quote, then confirm on payment.
+
 **Purchase rules come from Odoo, per product — nothing is named in code:**
 
 | Rule | Where it lives | Default |
@@ -322,6 +352,41 @@ public one.
 session rather than the form — it is the one thing on that page a customer
 should not be able to change, or one account could order against another's
 contact.
+
+### Client projects
+
+A client sees a project when they are the **Customer** on it
+(`project.project.partner_id`) — the same contact their orders and their
+login point at. That single field is the whole access model: assigning a
+client and recording who the work is for are the same act. `/account` shows
+each project, its status and its tasks with their stages.
+
+Two field notes for this database: `project.project.stage_id` is not
+readable (project stages aren't enabled), so the status shown is Odoo's own
+project health field `last_update_status`; task status comes from
+`project.task.state`, which is present.
+
+### The admin surface
+
+**Signing in as an internal Odoo user opens `/admin`.** Staff is not a role
+this site invents — it is Odoo's own `share` flag, read at sign-in and
+carried in the signed session cookie. `requireStaff()` gates the page and
+every action re-checks server-side, so hiding a button is presentation and
+the check is the permission.
+
+What it does, all of it writes straight to Odoo:
+
+| Panel | Writes |
+|---|---|
+| Products & pricing | `list_price`, `sale_ok`, and creating a product in the shop's category |
+| Client projects | create a project, set its **Customer** (which is how a client gains access), set its status |
+| Orders | confirm a quotation (**this is what releases a paid customer's downloads**) or cancel it |
+
+It is deliberately not a second Odoo. Descriptions, media, attachments and
+taxes stay in Odoo, because rebuilding those forms here would mean two
+places to get them wrong. A product created from `/admin` appears in the
+shop immediately with its name and price; its copy and files are added in
+Odoo using the record shape above.
 
 **Password resets need email, and this Odoo has none.** Every `mail.mail`
 on the instance is in an `exception` state with "Connection refused", so

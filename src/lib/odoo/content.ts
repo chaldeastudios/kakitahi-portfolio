@@ -205,7 +205,12 @@ export type OdooService = {
   kind: string;
   tagline: string;
   platform: string;
+  /** The ks-meta label, if a record still carries one. Products ignore it
+   *  in favour of Odoo's list_price — see getProducts(). */
   price: string;
+  /** Odoo's own price field, and the currency it is in. */
+  priceValue: number;
+  currency: string;
   license: string;
   published: string;
   updated: string;
@@ -304,12 +309,23 @@ async function getProductsByCategory(
   label: string,
   categoryId: number
 ): Promise<OdooService[]> {
-  const products = await callJson2<Array<{ id: number; name: string; description: string }>>(
+  const products = await callJson2<
+    Array<{
+      id: number;
+      name: string;
+      description: string;
+      list_price: number;
+      currency_id: [number, string] | false;
+    }>
+  >(
     "product.template",
     "search_read",
     {
+      // list_price and currency_id are the point: the price a customer pays
+      // is Odoo's price field, read live, not a string written into the
+      // description. Change it in Odoo and the next request charges it.
       domain: [["categ_id", "=", categoryId]],
-      fields: ["id", "name", "description"],
+      fields: ["id", "name", "description", "list_price", "currency_id"],
       order: "id asc",
     },
     ODOO_API_KEY
@@ -318,6 +334,8 @@ async function getProductsByCategory(
   const parsed = products.map((p) => ({
     id: p.id,
     title: p.name,
+    priceValue: p.list_price ?? 0,
+    currency: Array.isArray(p.currency_id) ? p.currency_id[1] : "",
     ...parseServiceDescription(p.description),
   }));
 
@@ -341,6 +359,19 @@ export async function getServices(): Promise<OdooService[]> {
  * the Odoo website — so images go through this site's own proxy, which
  * reads them with the server-side key. See app/api/odoo/media/route.ts.
  */
+/**
+ * A price as a customer reads it. Zero is "Free" — not "0.00 KES", which
+ * reads like a broken page rather than a gift.
+ */
+function formatPrice(value: number, currency: string): string {
+  if (!value || value <= 0) return "Free";
+  const amount = new Intl.NumberFormat("en-GB", {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+  return currency ? `${currency} ${amount}` : amount;
+}
+
 function mediaUrl(model: string, id: number, field = "image_1920"): string {
   return `/api/odoo/media?model=${encodeURIComponent(model)}&id=${id}&field=${field}`;
 }
@@ -424,6 +455,9 @@ export const getProducts = cache(async (): Promise<Product[]> => {
       tags: p.tags,
       linkLabel: p.linkLabel || "View on the Marketplace",
       link: p.link,
+      priceValue: p.priceValue,
+      currency: p.currency,
+      priceLabel: formatPrice(p.priceValue, p.currency),
       // Odoo's own "Can be Sold" decides whether a product can be ordered
       // here at all — untick it there and the product still has a page and
       // a marketplace link, but no Add to Cart.

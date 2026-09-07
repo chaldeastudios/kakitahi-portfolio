@@ -31,7 +31,8 @@ export default function CartView({ products }: { products: Product[] }) {
     .filter((x): x is { product: Product; quantity: number } => x !== null);
 
   const itemCount = resolved.reduce((n, r) => n + r.quantity, 0);
-  const allFree = resolved.every((r) => r.product.price.toLowerCase() === "free");
+  const total = resolved.reduce((sum, r) => sum + r.product.priceValue * r.quantity, 0);
+  const currency = resolved.find((r) => r.product.currency)?.product.currency ?? "";
 
   if (!ready) {
     return (
@@ -88,7 +89,7 @@ export default function CartView({ products }: { products: Product[] }) {
             </div>
 
             <div className="flex shrink-0 flex-col items-end gap-3">
-              <span className="t-body">{product.price}</span>
+              <span className="t-body">{product.priceLabel}</span>
 
               {product.maxQuantity > 1 ? (
                 <div className="flex items-center border border-black">
@@ -136,7 +137,11 @@ export default function CartView({ products }: { products: Product[] }) {
           </div>
           <div className="flex w-full items-baseline justify-between gap-6 pt-2">
             <span className="t-h5">Total</span>
-            <span className="t-h5">{allFree ? "Free" : "See checkout"}</span>
+            <span className="t-h5">
+              {total === 0
+                ? "Free"
+                : `${currency} ${total.toLocaleString("en-GB")}`}
+            </span>
           </div>
         </div>
 

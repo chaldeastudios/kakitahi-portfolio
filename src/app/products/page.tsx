@@ -36,7 +36,7 @@ export default async function ProductsPage() {
               <ProductCard
                 title={p.title}
                 kind={p.kind}
-                price={p.price}
+                price={p.priceLabel}
                 description={p.description.split("\n\n")[0]}
                 href={`/products/${p.slug}`}
                 image={p.images[0]}

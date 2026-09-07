@@ -50,8 +50,15 @@ export type Product = {
   tagline: string;
   /** Where it lives: "Framer Marketplace". */
   platform: string;
-  /** "Free", or a price once one applies. */
-  price: string;
+  /**
+   * The price as Odoo holds it. `priceValue` is the number the checkout
+   * decides on; `priceLabel` is the same thing as a customer reads it.
+   * Both come from product.template.list_price on every request — change
+   * the price in Odoo and the next page view charges it.
+   */
+  priceValue: number;
+  currency: string;
+  priceLabel: string;
   license: string;
   published: string;
   updated: string;
@@ -86,7 +93,9 @@ export const PRODUCTS: Product[] = [
     kind: "Framer Plugin",
     tagline: "Free Comments & Reviews",
     platform: "Framer Marketplace",
-    price: "Free",
+    priceValue: 0,
+    currency: "KES",
+    priceLabel: "Free",
     license: "Limited",
     published: "Aug 14, 2026",
     updated: "Aug 14, 2026",
@@ -152,7 +161,9 @@ export const PRODUCTS: Product[] = [
     kind: "Framer Template",
     tagline: "Personal & Ecommerce Template",
     platform: "Framer Marketplace",
-    price: "Free",
+    priceValue: 0,
+    currency: "KES",
+    priceLabel: "Free",
     license: "Limited",
     published: "",
     updated: "Sep 1, 2026",

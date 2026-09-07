@@ -52,6 +52,10 @@ export type PlacedOrder = {
   reference: string;
   orderId: number;
   partnerId: number;
+  /** What Odoo priced it at, once its own pricelist had its say. */
+  amountTotal: number;
+  /** False when it is a quotation awaiting payment. */
+  confirmed: boolean;
 };
 
 type PartnerRow = { id: number };
@@ -136,11 +140,26 @@ export async function alreadyOrderedProductIds(
   );
 }
 
-/** Places the order and confirms it. `productId` is a product.product id. */
-export async function placeFreeOrder(
+/**
+ * Places the order. `productId` is a product.product id.
+ *
+ * Two things here are deliberate:
+ *
+ * Lines carry no price. Odoo computes each one from the product and the
+ * customer's pricelist, which is the only way a price change in Odoo can be
+ * the price actually charged. A price sent from here would be a copy, and a
+ * copy is exactly how a product ends up billed at yesterday's number.
+ *
+ * `confirm` is false for anything that has to be paid for. A confirmed
+ * order is a sale: it releases the downloads and counts as revenue. An
+ * unpaid order must stay a quotation until the money arrives, so the site
+ * creates it and leaves it there.
+ */
+export async function placeOrder(
   lines: OrderLine[],
   details: CheckoutDetails,
-  partnerId: number
+  partnerId: number,
+  confirm: boolean
 ): Promise<PlacedOrder> {
   if (!isCheckoutConfigured) {
     throw new Error(
@@ -165,10 +184,11 @@ export async function placeFreeOrder(
           partner_id: partnerId,
           origin: `kakitahi.com — ${lines.map((l) => l.title).join(", ")}`,
           note,
+          // No price_unit: Odoo prices the line itself.
           order_line: lines.map((l) => [
             0,
             0,
-            { product_id: l.productId, product_uom_qty: l.quantity, price_unit: 0 },
+            { product_id: l.productId, product_uom_qty: l.quantity },
           ]),
         },
       ],
@@ -178,25 +198,34 @@ export async function placeFreeOrder(
 
   const orderId = Array.isArray(created) ? created[0] : created;
 
-  // Confirm it. A draft order is a quotation, not a sale, and would not
-  // reach the reporting or the mailing automation this record exists for.
-  try {
-    await callJson2("sale.order", "action_confirm", { ids: [orderId] }, ODOO_WRITE_API_KEY);
-  } catch {
-    await callJson2(
-      "sale.order",
-      "write",
-      { ids: [orderId], vals: { state: "sale" } },
-      ODOO_WRITE_API_KEY
-    );
+  // Confirm only a free order. A draft order is a quotation, not a sale,
+  // and would not reach reporting or the mailing automation this record
+  // exists for — but confirming an unpaid one would hand over the goods.
+  if (confirm) {
+    try {
+      await callJson2("sale.order", "action_confirm", { ids: [orderId] }, ODOO_WRITE_API_KEY);
+    } catch {
+      await callJson2(
+        "sale.order",
+        "write",
+        { ids: [orderId], vals: { state: "sale" } },
+        ODOO_WRITE_API_KEY
+      );
+    }
   }
 
-  const [order] = await callJson2<Array<{ id: number; name: string }>>(
+  const [order] = await callJson2<Array<{ id: number; name: string; amount_total: number }>>(
     "sale.order",
     "read",
-    { ids: [orderId], fields: ["id", "name"] },
+    { ids: [orderId], fields: ["id", "name", "amount_total"] },
     ODOO_WRITE_API_KEY
   );
 
-  return { reference: order?.name ?? `SO-${orderId}`, orderId, partnerId };
+  return {
+    reference: order?.name ?? `SO-${orderId}`,
+    orderId,
+    partnerId,
+    amountTotal: order?.amount_total ?? 0,
+    confirmed: confirm,
+  };
 }

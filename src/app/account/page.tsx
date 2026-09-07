@@ -7,6 +7,7 @@ import { signOutAction } from "./actions";
 import { getSession } from "@/lib/auth/session";
 import { getOrdersForPartnerSafe, type OrderView } from "@/lib/odoo/orders";
 import { createDownloadToken } from "@/lib/checkout/signing";
+import { getProjectsForPartner } from "@/lib/odoo/projects";
 
 /**
  * /account — everything this customer has, in one place.
@@ -52,7 +53,10 @@ export default async function AccountPage() {
   const session = await getSession();
   if (!session) redirect("/account/login?next=/account");
 
-  const { orders, failed } = await getOrdersForPartnerSafe(session.partnerId);
+  const [{ orders, failed }, { projects, failed: projectsFailed }] = await Promise.all([
+    getOrdersForPartnerSafe(session.partnerId),
+    getProjectsForPartner(session.partnerId),
+  ]);
   const owned = ownedProducts(orders);
 
   return (
@@ -82,10 +86,21 @@ export default async function AccountPage() {
                 <span className="t-body">Products owned</span>
                 <span className="t-body">{owned.length}</span>
               </div>
+              <div className="flex w-full items-center justify-between gap-6 border-b border-border pb-[14px]">
+                <span className="t-body">Projects</span>
+                <span className="t-body">{projects.length}</span>
+              </div>
             </div>
-            <Link href="/products" className="t-button underline underline-offset-4">
-              Browse products
-            </Link>
+            <div className="flex flex-col items-start gap-3">
+              {session.isStaff && (
+                <Link href="/admin" className="t-button bg-yellow px-5 py-3 text-black">
+                  Open admin →
+                </Link>
+              )}
+              <Link href="/products" className="t-button underline underline-offset-4">
+                Browse products
+              </Link>
+            </div>
           </div>
         </PageHero>
 
@@ -180,6 +195,65 @@ export default async function AccountPage() {
             </div>
           )}
         </section>
+
+        {/* Projects — what's being built for them */}
+        {(projects.length > 0 || projectsFailed) && (
+          <section className="flex w-full flex-col items-start gap-8 border-b border-border bg-white p-6 desktop:p-10">
+            <div className="flex items-center gap-[6px]">
+              <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
+              <h2 className="t-button">Your projects</h2>
+            </div>
+
+            {projectsFailed ? (
+              <p className="t-body max-w-[520px]">
+                Your projects can&apos;t be reached at the moment.
+              </p>
+            ) : (
+              <div className="flex w-full flex-col gap-8">
+                {projects.map((project) => (
+                  <article
+                    key={project.id}
+                    className="flex w-full flex-col items-start gap-4 border-b border-border pb-8"
+                  >
+                    <div className="flex w-full flex-wrap items-baseline justify-between gap-4">
+                      <span className="t-h5">{project.name}</span>
+                      <span className="t-button flex items-center gap-[6px]">
+                        <span
+                          aria-hidden="true"
+                          className="block h-[10px] w-[10px] shrink-0 bg-yellow"
+                        />
+                        {project.status}
+                      </span>
+                    </div>
+
+                    {project.tasks.length === 0 ? (
+                      <span className="t-body-s text-lightblack">
+                        No tasks on this project yet.
+                      </span>
+                    ) : (
+                      <ul className="flex w-full flex-col">
+                        {project.tasks.map((task) => (
+                          <li
+                            key={task.id}
+                            className="flex w-full flex-wrap items-baseline justify-between gap-4 border-b border-border py-3"
+                          >
+                            <span className="t-body min-w-0 flex-1">{task.name}</span>
+                            {task.deadline && (
+                              <span className="t-body-s text-lightblack">
+                                Due {formatDate(String(task.deadline))}
+                              </span>
+                            )}
+                            <span className="t-body-s shrink-0">{task.status}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Orders — the record */}
         <section className="flex w-full flex-col items-start gap-8 border-b border-border bg-offwhite p-6 desktop:p-10">

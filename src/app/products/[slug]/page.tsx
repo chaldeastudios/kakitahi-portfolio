@@ -124,7 +124,7 @@ export default async function ProductPage({
                 </MetaRow>
               )}
               <MetaRow label="Price">
-                <span className="t-body">{product.price}</span>
+                <span className="t-body">{product.priceLabel}</span>
               </MetaRow>
             </div>
 

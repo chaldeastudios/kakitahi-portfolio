@@ -102,6 +102,9 @@ export default function CheckoutFlow({
     .filter((x): x is { product: Product; quantity: number } => x !== null);
 
   const itemCount = cart.reduce((n, c) => n + c.quantity, 0);
+  const total = cart.reduce((sum, c) => sum + c.product.priceValue * c.quantity, 0);
+  const currency = cart.find((c) => c.product.currency)?.product.currency ?? "";
+  const totalLabel = total === 0 ? "Free" : `${currency} ${total.toLocaleString("en-GB")}`;
 
   function toReview(e: React.FormEvent) {
     e.preventDefault();
@@ -177,7 +180,14 @@ export default function CheckoutFlow({
 
           {/* The cart, small, so it stays in view through every step */}
           <div className="flex w-full flex-col items-start gap-3 border-t border-border pt-5">
-            {(result ? result.items : cart.map((c) => ({ title: c.product.title, kind: c.product.kind, quantity: c.quantity }))).map(
+            {(result
+              ? result.items
+              : cart.map((c) => ({
+                  title: c.product.title,
+                  kind: c.product.kind,
+                  quantity: c.quantity,
+                }))
+            ).map(
               (item) => (
                 <div key={item.title} className="flex w-full items-baseline justify-between gap-4">
                   <span className="t-body">{item.title}</span>
@@ -187,7 +197,7 @@ export default function CheckoutFlow({
             )}
             {!result && (
               <span className="t-body-s text-lightblack">
-                {itemCount} item{itemCount === 1 ? "" : "s"} · Free
+                {itemCount} item{itemCount === 1 ? "" : "s"} · {totalLabel}
               </span>
             )}
           </div>
@@ -217,8 +227,9 @@ export default function CheckoutFlow({
                 </div>
 
                 <p className="t-body max-w-[520px]">
-                  There is nothing to pay. This is so the order is a real record, and so I know
-                  who is using what I make.
+                  {total === 0
+                    ? "There is nothing to pay. This is so the order is a real record, and so I know who is using what I make."
+                    : "Your order is placed here and I'll send payment details — the files are released once payment clears."}
                   {!account && (
                     <>
                       {" "}
@@ -312,7 +323,7 @@ export default function CheckoutFlow({
                     <SummaryRow
                       key={product.slug}
                       label={`${product.title} ×${quantity}`}
-                      value={product.price}
+                      value={product.priceLabel}
                     />
                   ))}
                   <SummaryRow label="Name" value={details.name} />
@@ -323,7 +334,7 @@ export default function CheckoutFlow({
                   />
                   <div className="flex w-full items-baseline justify-between gap-6 pt-2">
                     <span className="t-h5">Total</span>
-                    <span className="t-h5">Free</span>
+                    <span className="t-h5">{totalLabel}</span>
                   </div>
                 </div>
 
@@ -364,12 +375,28 @@ export default function CheckoutFlow({
 
                 <div className="flex flex-col items-start gap-3">
                   <p className="t-h4 max-w-[560px]">
-                    Order {result.reference} is placed.
+                    {result.confirmed
+                      ? `Order ${result.reference} is placed.`
+                      : `Order ${result.reference} is reserved.`}
                   </p>
                   <p className="t-body max-w-[520px]">
-                    It is on file against {result.email}. Nothing was charged — the order exists so
-                    this is on the record rather than an anonymous download. Your files are below;
-                    you don&apos;t have to wait for an email to get them.
+                    {result.confirmed ? (
+                      <>
+                        It is on file against {result.email}. Nothing was charged — the order
+                        exists so this is on the record rather than an anonymous download. Your
+                        files are below; you don&apos;t have to wait for an email to get them.
+                      </>
+                    ) : (
+                      <>
+                        It is held against {result.email} for{" "}
+                        <strong>
+                          {result.currency} {result.amountTotal.toLocaleString("en-GB")}
+                        </strong>
+                        . Nothing has been charged yet and nothing is released yet — I&apos;ll be
+                        in touch with payment details, and the moment payment clears the files
+                        appear in your account.
+                      </>
+                    )}
                   </p>
                   <p className="t-body max-w-[520px]">
                     {account ? (

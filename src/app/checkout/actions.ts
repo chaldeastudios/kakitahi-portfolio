@@ -3,7 +3,7 @@
 import {
   alreadyOrderedProductIds,
   findOrCreatePartner,
-  placeFreeOrder,
+  placeOrder as writeOrder,
   type OrderLine,
 } from "@/lib/checkout/orders";
 import { createDownloadToken } from "@/lib/checkout/signing";
@@ -44,6 +44,10 @@ export type OrderResult =
       items: OrderedItem[];
       /** Lines dropped because this customer already has them. */
       skipped: Array<{ title: string; reason: string }>;
+      /** False when the order is a quotation waiting on payment. */
+      confirmed: boolean;
+      amountTotal: number;
+      currency: string;
     }
   | { ok: false; error: string };
 
@@ -87,16 +91,11 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
     return { ok: false, error: "Nothing in your cart is available to order any more." };
   }
 
-  const paid = resolved.filter((r) => r.product.price.toLowerCase() !== "free");
-  if (paid.length > 0) {
-    // Every product here is free today. If one ever isn't, this is the line
-    // that has to change — and it should change to a payment step, not to a
-    // silent zero-price order.
-    return {
-      ok: false,
-      error: `${paid[0].product.title} is no longer free, and this checkout cannot take payment yet.`,
-    };
-  }
+  // What this costs, from Odoo's price field — not from anything written
+  // into a description, and not from anything the browser sent.
+  const total = resolved.reduce((sum, r) => sum + r.product.priceValue * r.quantity, 0);
+  const currency = resolved.find((r) => r.product.currency)?.product.currency ?? "";
+  const isFree = total <= 0;
 
   // A local dry run, so the flow can be walked end to end without writing
   // to the real database. Never available in production.
@@ -160,12 +159,22 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
       quantity: r.quantity,
     }));
 
+    // A free order is confirmed on the spot; a priced one is created as a
+    // quotation and stays there until the money is in. Nothing is handed
+    // over on an unconfirmed order.
     const order = dryRun
-      ? { reference: `S${String(Date.now()).slice(-5)}`, orderId: 0, partnerId: 0 }
-      : await placeFreeOrder(
+      ? {
+          reference: `S${String(Date.now()).slice(-5)}`,
+          orderId: 0,
+          partnerId: 0,
+          amountTotal: total,
+          confirmed: isFree,
+        }
+      : await writeOrder(
           lines,
           { name, email, context: input.context, marketingOptIn: input.marketingOptIn },
-          partnerId
+          partnerId,
+          isFree
         );
 
     const items: OrderedItem[] = toOrder.map((r) => ({
@@ -173,17 +182,28 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
       title: r.product.title,
       kind: r.product.kind,
       quantity: r.quantity,
-      downloadUrl: r.product.deliverable
-        ? `/api/download?token=${encodeURIComponent(
-            createDownloadToken(order.reference, r.product.deliverable.attachmentId)
-          )}`
-        : null,
+      // Only a confirmed order releases files.
+      downloadUrl:
+        order.confirmed && r.product.deliverable
+          ? `/api/download?token=${encodeURIComponent(
+              createDownloadToken(order.reference, r.product.deliverable.attachmentId)
+            )}`
+          : null,
       deliverableName: r.product.deliverable?.name ?? null,
       link: r.product.link,
       linkLabel: r.product.linkLabel,
     }));
 
-    return { ok: true, reference: order.reference, email, items, skipped };
+    return {
+      ok: true,
+      reference: order.reference,
+      email,
+      items,
+      skipped,
+      confirmed: order.confirmed,
+      amountTotal: order.amountTotal,
+      currency,
+    };
   } catch (err) {
     console.warn("[checkout] order failed:", err);
     return {

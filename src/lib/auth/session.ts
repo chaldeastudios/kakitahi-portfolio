@@ -27,6 +27,13 @@ export type Session = {
   uid: number;
   email: string;
   name: string;
+  /**
+   * True for an internal Odoo user — the opposite of Odoo's `share` flag.
+   * It is the only thing that opens /admin, and it is decided at sign-in
+   * from Odoo's own record, then carried in the signed cookie. A customer
+   * cannot grant it to themselves: forging it would need the server secret.
+   */
+  isStaff: boolean;
   expires: number;
 };
 

@@ -17,6 +17,10 @@ import { callJson2 } from "@/lib/odoo/json2";
  * unauthenticated /jsonrpc endpoint the status page already pings. There is
  * no password material in this database or in this codebase.
  *
+ * Staff sign in here too: Odoo's `share` flag decides which they are, and
+ * an internal user gets the admin surface at /admin. Sign-up can only ever
+ * create a portal customer.
+ *
  * One consequence worth knowing: password *reset* needs email, and this
  * Odoo instance has no outgoing mail server configured — every mail.mail on
  * it is in an exception state with "Connection refused". Until an SMTP
@@ -32,6 +36,8 @@ export type Account = {
   partnerId: number;
   email: string;
   name: string;
+  /** Internal Odoo user, i.e. staff. Customers are portal users. */
+  isStaff: boolean;
 };
 
 export class AuthError extends Error {}
@@ -89,20 +95,15 @@ export async function signIn(email: string, password: string): Promise<Account> 
     throw new AuthError("That account isn't set up for the shop.");
   }
 
-  // Only ever let portal customers in here. An internal Odoo user signing
-  // in through the shop would be a staff account on a customer surface,
-  // which is not what this is for.
-  if (!user.share) {
-    throw new AuthError(
-      "That's a staff account — sign in to Odoo directly rather than through the shop."
-    );
-  }
-
+  // Both kinds sign in here. Odoo's own `share` flag is what separates
+  // them: false means an internal user, which is what opens /admin. It is
+  // read from Odoo at sign-in rather than assumed from an email address.
   return {
     uid: user.id,
     partnerId: user.partner_id[0],
     email: user.login,
     name: user.partner_id[1],
+    isStaff: !user.share,
   };
 }
 
@@ -168,5 +169,13 @@ export async function signUp(
     throw new AuthError("The account was created but could not be read back.");
   }
 
-  return { uid, partnerId: user.partner_id[0], email: login, name: user.partner_id[1] };
+  // Sign-up always makes a portal customer. Staff accounts are made in
+  // Odoo, deliberately — this form cannot mint one.
+  return {
+    uid,
+    partnerId: user.partner_id[0],
+    email: login,
+    name: user.partner_id[1],
+    isStaff: false,
+  };
 }
