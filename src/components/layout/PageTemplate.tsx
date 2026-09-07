@@ -10,9 +10,20 @@ import Cursor from "@/components/ui/Cursor";
  * oN6wMQVRI) carries the pattern background and clips its overflow, so the
  * pattern shows through wherever a section does not paint its own colour.
  */
-export default function PageTemplate({ children }: { children: React.ReactNode }) {
+export default function PageTemplate({
+  children,
+  ground = "pattern",
+}: {
+  children: React.ReactNode;
+  /** The 404 page's frame is plain /White rather than the pattern ground. */
+  ground?: "pattern" | "white";
+}) {
   return (
-    <div className="pattern-ground relative min-h-screen w-full overflow-x-clip">
+    <div
+      className={`relative min-h-screen w-full overflow-x-clip ${
+        ground === "pattern" ? "pattern-ground" : "bg-white"
+      }`}
+    >
       <Cursor />
       <Header />
       <main className="w-full">{children}</main>

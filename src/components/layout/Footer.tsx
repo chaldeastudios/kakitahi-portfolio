@@ -1,5 +1,6 @@
 import FooterLink from "@/components/ui/FooterLink";
 import LiquidGradient from "@/components/ui/LiquidGradient";
+import { Reveal } from "@/components/ui/Reveal";
 import { FOOTER } from "@/lib/content";
 
 /**
@@ -26,7 +27,9 @@ export default function Footer() {
       <div className="grid grid-cols-1 border-b border-border tablet:grid-cols-2">
         {/* Frame83 */}
         <div className="flex items-start p-6">
-          <h2 className="t-h3">{FOOTER.heading}</h2>
+          <Reveal y={20}>
+            <h2 className="t-h3">{FOOTER.heading}</h2>
+          </Reveal>
         </div>
 
         {/* Frame82 */}

@@ -1,4 +1,5 @@
 import Button from "@/components/ui/Button";
+import { Reveal } from "@/components/ui/Reveal";
 import { CTA } from "@/lib/content";
 
 /**
@@ -43,13 +44,17 @@ export default function Cta() {
           the card's edges land exactly on those rules on all four sides. */}
       <div className="relative z-[1] flex h-1/2 w-[85%] flex-col items-center justify-center tablet:w-1/2">
         <div className="flex w-full flex-1 flex-col items-start gap-8 overflow-hidden bg-offwhite px-6 py-8">
-          <div className="z-[1] flex items-center gap-[6px]">
+          <Reveal className="z-[1] flex items-center gap-[6px]" y={12}>
             <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
             <p className="t-tagline">{CTA.tagline}</p>
-          </div>
+          </Reveal>
           <div className="flex w-full flex-col items-center justify-center gap-[10px] tablet:w-[75%]">
-            <h2 className="t-h3 w-full">{CTA.heading}</h2>
-            <p className="t-body w-full">{CTA.description}</p>
+            <Reveal className="w-full" delay={0.06}>
+              <h2 className="t-h3 w-full">{CTA.heading}</h2>
+            </Reveal>
+            <Reveal className="w-full" delay={0.12}>
+              <p className="t-body w-full">{CTA.description}</p>
+            </Reveal>
           </div>
         </div>
 

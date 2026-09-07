@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import MenuButton from "@/components/ui/MenuButton";
 import TimezoneClock from "@/components/ui/TimezoneClock";
 import { ClockIcon } from "@/components/ui/icons";
+import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { NAV_LINKS } from "@/lib/content";
 
 /**
@@ -51,11 +52,17 @@ export default function Header() {
         {/* Left: logo + nav */}
         <div className="flex h-full items-center">
           <Logo />
-          <nav className="ml-[45px] hidden items-center gap-5 desktop:flex">
+          <RevealGroup
+            className="ml-[45px] hidden items-center gap-5 desktop:flex"
+            stagger={0.06}
+            onMount
+          >
             {NAV_LINKS.map((l) => (
-              <TextLink key={l.label} label={l.label} href={l.href} newTab={l.newTab} />
+              <RevealItem key={l.label}>
+                <TextLink label={l.label} href={l.href} newTab={l.newTab} />
+              </RevealItem>
             ))}
-          </nav>
+          </RevealGroup>
         </div>
 
         {/* Divider — 1px, full height, centred, zIndex 2 */}

@@ -1,4 +1,5 @@
 import Button from "@/components/ui/Button";
+import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import ImageSlideshow from "@/components/ui/ImageSlideshow";
 import ClientMarquee from "@/components/ui/ClientMarquee";
 import { HERO, SLIDESHOW_IMAGES } from "@/lib/content";
@@ -24,15 +25,15 @@ export default function Hero() {
       {/* Left */}
       <div className="relative z-[1] tablet:sticky tablet:top-12 tablet:self-start">
         <div className="flex h-[380px] flex-col items-start justify-between border-r border-b border-border bg-white py-5 pl-5">
-          <div className="flex w-full items-center justify-end px-5">
+          <Reveal className="flex w-full items-center justify-end px-5" y={16}>
             <ImageSlideshow
               images={SLIDESHOW_IMAGES}
               className="h-[100px] w-[100px]"
             />
-          </div>
-          <div className="flex w-[82%] items-center justify-center overflow-hidden">
+          </Reveal>
+          <Reveal className="flex w-[82%] items-center justify-center overflow-hidden" y={32} duration={0.85}>
             <h1 className="t-h1 w-full">{HERO.name}</h1>
-          </div>
+          </Reveal>
         </div>
       </div>
 
@@ -43,7 +44,9 @@ export default function Hero() {
 
         {/* Intro */}
         <div className="flex min-h-[340px] w-full flex-col items-start justify-between gap-20 overflow-hidden bg-black p-6">
-          <p className="t-h4 w-full text-white">{HERO.intro}</p>
+          <Reveal className="w-full">
+            <p className="t-h4 w-full text-white">{HERO.intro}</p>
+          </Reveal>
           <Button
             label={HERO.introCta.label}
             href={HERO.introCta.href}
@@ -55,10 +58,14 @@ export default function Hero() {
 
         {/* Clients */}
         <div className="flex min-h-[340px] w-full flex-col items-start justify-between gap-20 overflow-hidden border-b border-l border-border bg-yellow p-6">
-          <p className="t-h4 w-full">{HERO.clientsHeading}</p>
+          <Reveal className="w-full">
+            <p className="t-h4 w-full">{HERO.clientsHeading}</p>
+          </Reveal>
 
           <div className="flex w-full flex-col items-start gap-6">
-            <p className="t-h6">{HERO.clientsLabel}</p>
+            <Reveal y={14}>
+              <p className="t-h6">{HERO.clientsLabel}</p>
+            </Reveal>
             <ClientMarquee logos={HERO.clients} />
           </div>
         </div>

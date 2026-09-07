@@ -1,3 +1,4 @@
+import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { ABOUT } from "@/lib/content";
 
 /**
@@ -23,8 +24,10 @@ export default function About() {
       {/* Left */}
       <div className="flex flex-col items-start overflow-hidden border-b border-border bg-offwhite px-6 pt-6 pb-6 tablet:border-r tablet:border-b-0 tablet:pb-[180px]">
         <div className="z-[1] flex items-center gap-[6px] tablet:sticky tablet:top-[72px]">
-          <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
-          <p className="t-tagline">{ABOUT.tagline}</p>
+          <Reveal className="flex items-center gap-[6px]" y={12}>
+            <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
+            <p className="t-tagline">{ABOUT.tagline}</p>
+          </Reveal>
         </div>
       </div>
 
@@ -32,13 +35,16 @@ export default function About() {
       <div className="flex flex-col items-start">
         <div className="hidden h-[100px] w-full tablet:block" />
 
-        <div className="flex w-full flex-col items-start gap-6 overflow-hidden bg-white px-5 py-6">
+        <RevealGroup
+          className="flex w-full flex-col items-start gap-6 overflow-hidden bg-white px-5 py-6"
+          stagger={0.12}
+        >
           {ABOUT.paragraphs.map((p, i) => (
-            <p key={i} className="t-h3 w-full">
-              {p}
-            </p>
+            <RevealItem key={i} className="w-full">
+              <p className="t-h3 w-full">{p}</p>
+            </RevealItem>
           ))}
-        </div>
+        </RevealGroup>
 
         <div className="h-[180px] w-full bg-white" />
       </div>

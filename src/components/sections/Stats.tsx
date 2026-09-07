@@ -1,4 +1,5 @@
 import AnimatedCounter from "@/components/ui/AnimatedCounter";
+import { Reveal } from "@/components/ui/Reveal";
 import { STATS } from "@/lib/content";
 
 /**
@@ -55,7 +56,9 @@ export default function Stats() {
                 decimals={0}
                 commas
               />
-              <p className="t-body-l w-full">{s.label}</p>
+              <Reveal className="w-full" y={14} delay={0.15}>
+                <p className="t-body-l w-full">{s.label}</p>
+              </Reveal>
             </div>
           </div>
         );

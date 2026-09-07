@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import Button from "@/components/ui/Button";
 import { ArrowLeft, ArrowRightLarge, QuoteIcon } from "@/components/ui/icons";
+import { Reveal } from "@/components/ui/Reveal";
 import { TESTIMONIALS } from "@/lib/content";
 
 /**
@@ -47,10 +48,10 @@ export default function Testimonials() {
       {/* Left — label + arrows */}
       <div className="flex flex-col justify-between bg-white desktop:h-[631px]">
         <div className="flex h-[65px] flex-col items-start overflow-hidden bg-white p-6">
-          <div className="flex items-center gap-[6px]">
+          <Reveal className="flex items-center gap-[6px]" y={12}>
             <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
             <span className="t-body">{TESTIMONIALS.tagline}</span>
-          </div>
+          </Reveal>
         </div>
 
         <div className="flex h-[50px] items-center border-y border-border bg-white">
