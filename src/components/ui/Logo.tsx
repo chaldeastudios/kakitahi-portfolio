@@ -3,9 +3,13 @@ import Link from "next/link";
 /**
  * Logo — Framer component "Logo" (ypmlYQd0q), Variant1 (K327xd1Ms).
  *
- * Read from a detached copy: backgroundColor /Black, height 48px,
- * padding 5px 10px, link "/", holding a single 20px-tall image — i.e. a
- * solid black tile carrying the "IK" monogram rather than the full name.
+ * From a detached copy: backgroundColor /Black, height 48px, padding
+ * 5px 10px, link "/", holding a single image 20px tall — a solid black
+ * tile carrying the monogram.
+ *
+ * The source mark is a raster image, so the MCP cannot expose its glyphs
+ * or metrics. The type below is set to land the mark at the same 20px
+ * height inside the 48px tile, in the project's own Geist at 600.
  */
 export default function Logo() {
   return (
@@ -15,15 +19,16 @@ export default function Logo() {
       aria-label="Isaiah Kakitahi — home"
     >
       <span
-        className="block leading-none text-white"
+        className="block text-white"
         style={{
           fontFamily: "var(--font-geist), system-ui, sans-serif",
           fontWeight: 600,
-          fontSize: "20px",
-          letterSpacing: "-0.05em",
+          fontSize: "26px",
+          lineHeight: "20px",
+          letterSpacing: "-0.04em",
         }}
       >
-        IK
+        IK.
       </span>
     </Link>
   );

@@ -226,12 +226,12 @@ export const FOOTER = {
 
 /**
  * The Hero's Image Slideshow frames — the four portraits, in the order
- * supplied. Drop the files in public/hero/ as 1.jpg .. 4.jpg; they cannot
+ * supplied. Drop the files in public/hero/ as 1.png .. 4.png; they cannot
  * be written from this session, so the paths are wired ahead of the files.
  */
 export const SLIDESHOW_IMAGES = [
-  "/hero/1.jpg",
-  "/hero/2.jpg",
-  "/hero/3.jpg",
-  "/hero/4.jpg",
+  "/hero/1.png",
+  "/hero/2.png",
+  "/hero/3.png",
+  "/hero/4.png",
 ] as const;

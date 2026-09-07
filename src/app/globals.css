@@ -24,10 +24,15 @@
   --ease-framer: cubic-bezier(0.44, 0, 0.56, 1);
 }
 
-* {
-  border-color: var(--color-border);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Default every border to /Border, but inside @layer base so Tailwind's
+   utilities layer still wins — an unlayered rule here would beat
+   border-black and friends, since unlayered styles outrank layered ones. */
+@layer base {
+  * {
+    border-color: var(--color-border);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 html {

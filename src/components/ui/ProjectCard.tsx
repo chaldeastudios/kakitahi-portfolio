@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { ArrowRight } from "./icons";
@@ -35,9 +34,14 @@ export default function ProjectCard({
   const [hovered, setHovered] = useState(false);
 
   return (
-    <Link
+    <motion.a
       href={href}
-      className="flex w-full flex-col items-center gap-4 border border-black bg-offwhite p-8"
+      className="flex w-full flex-col items-center gap-4 border border-black p-8"
+      initial={false}
+      animate={{
+        backgroundColor: hovered ? "rgb(234, 234, 234)" : "rgb(244, 244, 244)",
+      }}
+      transition={{ duration: 0.32, ease: EASE }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setHovered(true)}
@@ -68,10 +72,10 @@ export default function ProjectCard({
               className="absolute inset-0 block"
               initial={false}
               animate={{ x: hovered ? 18 : 0 }}
-              transition={{ duration: 0.5, ease: EASE }}
+              transition={{ duration: 0.32, ease: EASE }}
             >
               <span className="absolute top-0 -left-[18px] block">
-                <ArrowRight color="rgb(255, 255, 255)" />
+                <ArrowRight color="rgb(0, 0, 0)" />
               </span>
               <span className="absolute top-0 left-0 block">
                 <ArrowRight color="rgb(0, 0, 0)" />
@@ -80,6 +84,6 @@ export default function ProjectCard({
           </span>
         </div>
       </div>
-    </Link>
+    </motion.a>
   );
 }
