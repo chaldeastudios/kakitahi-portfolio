@@ -42,6 +42,7 @@ declare global {
         amount: number;
         currency: string;
         ref: string;
+        metadata?: Record<string, unknown>;
         callback: (response: { reference: string }) => void;
         onClose: () => void;
       }): { openIframe: () => void };
@@ -184,6 +185,10 @@ export default function CheckoutFlow({
           amount: payment.amountMinor,
           currency: payment.currencyCode,
           ref: payment.reference,
+          // The reference itself already encodes the order id (see
+          // paystackReference in lib/checkout/paystack) — this is only so
+          // it also shows up as its own field in Paystack's dashboard.
+          metadata: { orderId: payment.orderId },
           callback: (response) => {
             setModalOpen(false);
             // A successful callback is only the cue to ask Odoo to verify —

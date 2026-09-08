@@ -1,7 +1,13 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
-import { ODOO_URL, ODOO_WRITE_API_KEY, isCheckoutConfigured } from "@/lib/odoo/config";
+import { ODOO_WRITE_API_KEY, isCheckoutConfigured } from "@/lib/odoo/config";
 import { callJson2 } from "@/lib/odoo/json2";
+import {
+  isPaystackConfigured,
+  paystackReference,
+  parseOrderIdFromReference,
+  verifyPaystackTransaction,
+  PAYSTACK_PUBLIC_KEY,
+} from "./paystack";
 
 /**
  * The Odoo side of the cart checkout.
@@ -23,6 +29,13 @@ import { callJson2 } from "@/lib/odoo/json2";
  *
  * Inventory is deliberately not consulted. These are non-storable service
  * products in Odoo — there is no stock to check and nothing to run out of.
+ *
+ * Paystack itself is not an Odoo module here. Odoo Online (this site's
+ * Enterprise backend) can't install custom Python code, so payment_paystack
+ * — still running, unmodified, against the self-hosted database — is no
+ * longer on the live path. What's below talks to Paystack's own API
+ * directly (see ./paystack) and confirms the sale.order the same way a free
+ * order is confirmed, once Paystack itself says the money moved.
  */
 
 export type CheckoutDetails = {
@@ -76,28 +89,18 @@ type PartnerRow = { id: number };
 const CURRENCY_MINOR_UNITS = 100;
 
 /**
- * Opens a Paystack payment.transaction for this order and returns what the
- * browser needs to pay it — no redirect, no Odoo portal page in between.
- *
- * There is no quotation step here on purpose: this site never sends anyone
- * to Odoo's own order/portal view. The transaction is created directly
- * (`create` — an ordinary public method), Paystack's own inline widget
- * takes the payment right on this page using only the public key (not a
- * secret), and a later verify call is what confirms it — see
- * verifyPaystackPayment() and the `/payment/paystack/return` controller in
- * odoo/addons/payment_paystack, which holds the one copy of the secret key
- * and is the only thing that decides whether money actually moved.
- *
- * The transaction still needs to exist in Odoo *before* the modal opens:
- * verification works by looking up a payment.transaction by reference, so
- * the reference handed to Paystack's widget has to be one Odoo already
- * knows about.
+ * Prepares what the browser needs to open Paystack's inline modal for this
+ * order — no redirect, no Odoo write, nothing that has to exist anywhere
+ * before the modal opens. The reference alone is enough: it encodes the
+ * order id (see paystackReference()), which is what lets verification and
+ * the webhook find their way back to this order later without any record
+ * of the attempt having to be created up front.
  */
 async function createPaystackTransaction(
   orderId: number,
-  partnerId: number,
   amountTotal: number
 ): Promise<PaystackPaymentInit | null> {
+  if (!isPaystackConfigured) return null;
   try {
     const [order] = await callJson2<Array<{ currency_id: [number, string] | false }>>(
       "sale.order",
@@ -106,102 +109,90 @@ async function createPaystackTransaction(
       ODOO_WRITE_API_KEY
     );
     if (!order?.currency_id) return null;
-    const [currencyId, currencyCode] = order.currency_id;
-
-    const [provider] = await callJson2<Array<{ id: number; paystack_public_key: string | false }>>(
-      "payment.provider",
-      "search_read",
-      {
-        domain: [
-          ["code", "=", "paystack"],
-          ["state", "in", ["enabled", "test"]],
-        ],
-        fields: ["id", "paystack_public_key"],
-        limit: 1,
-      },
-      ODOO_WRITE_API_KEY
-    );
-    if (!provider?.paystack_public_key) return null;
-
-    // The specific payment method recorded against the transaction barely
-    // matters here — Paystack's own widget handles method choice (card,
-    // M-Pesa, bank transfer, ...) on its side regardless of this value.
-    // It only has to be *a* method Odoo already links to this provider.
-    const [method] = await callJson2<Array<{ id: number }>>(
-      "payment.method",
-      "search_read",
-      { domain: [["code", "=", "card"]], fields: ["id"], limit: 1 },
-      ODOO_WRITE_API_KEY
-    );
-    if (!method) return null;
-
-    const reference = `kakitahi-${randomUUID()}`;
-
-    await callJson2(
-      "payment.transaction",
-      "create",
-      {
-        vals_list: [
-          {
-            provider_id: provider.id,
-            payment_method_id: method.id,
-            reference,
-            amount: amountTotal,
-            currency_id: currencyId,
-            partner_id: partnerId,
-            operation: "online_redirect",
-            sale_order_ids: [[6, 0, [orderId]]],
-          },
-        ],
-      },
-      ODOO_WRITE_API_KEY
-    );
+    const [, currencyCode] = order.currency_id;
 
     return {
-      reference,
+      reference: paystackReference(orderId),
       amountMinor: Math.round(amountTotal * CURRENCY_MINOR_UNITS),
       currencyCode,
-      publicKey: provider.paystack_public_key,
+      publicKey: PAYSTACK_PUBLIC_KEY,
     };
   } catch (err) {
-    console.warn("[odoo] could not open a Paystack transaction:", err);
+    console.warn("[paystack] could not prepare a payment for order", orderId, err);
     return null;
   }
 }
 
 /**
- * Tells Odoo to verify a Paystack payment and, if it is genuine, apply it.
+ * Asks Paystack itself whether this payment went through and, if it did,
+ * confirms the order — the same action_confirm a free order gets, just
+ * gated on Paystack's word instead of nothing.
  *
- * This is a plain GET against the module's own public controller
- * (`/payment/paystack/return`, auth='public') — the exact route Paystack's
- * hosted redirect would have hit, just called directly instead of via a
- * browser navigation. It re-fetches the transaction from Paystack itself
- * using the secret key (which lives only in Odoo) rather than trusting
- * whatever the browser's success callback said, and — because the
- * transaction carries this order in `sale_order_ids` — Odoo's own
- * payment/sale bridge (`_check_amount_and_confirm_order`) confirms the
- * order the moment the transaction reaches "done".
+ * Three things have to hold before an order is confirmed, none of them
+ * taken on trust from the caller:
  *
- * This call's own success or failure is not the verdict: whether the order
- * actually got confirmed is checked separately afterwards, by reading it
- * back — never by trusting that this request merely completed.
+ *   - the reference has to verify as "success" against Paystack's API,
+ *     using the secret key, which is the only way to know money actually
+ *     moved (a browser callback or an unauthenticated webhook body is not
+ *     enough on its own);
+ *   - the reference's own embedded order id has to match the orderId this
+ *     call was given, so a reference that succeeded for someone else's
+ *     order can't be replayed against this one;
+ *   - the amount Paystack verified has to match what Odoo says this order
+ *     actually costs, so a tampered client-side amount can't buy an
+ *     underpriced order.
+ *
+ * Called from both paths that can learn a payment succeeded: the browser's
+ * own callback (checkout/actions.ts) and the Paystack webhook, so a closed
+ * tab still ends in a confirmed order. Both are best-effort by design —
+ * whether the order is actually confirmed is always checked afterwards by
+ * reading it back, never by trusting that this call merely completed.
  */
-export async function verifyPaystackPayment(reference: string): Promise<void> {
-  if (!ODOO_URL) return;
+export async function verifyPaystackPayment(reference: string, orderId: number): Promise<void> {
+  if (!isPaystackConfigured) return;
+  if (parseOrderIdFromReference(reference) !== orderId) {
+    console.warn("[paystack] reference does not belong to this order:", reference, orderId);
+    return;
+  }
   try {
-    const res = await fetch(
-      `${ODOO_URL}/payment/paystack/return?reference=${encodeURIComponent(reference)}`,
-      { method: "GET", redirect: "manual", cache: "no-store" }
+    const verification = await verifyPaystackTransaction(reference);
+    if (!verification || verification.status !== "success") return;
+
+    const [order] = await callJson2<Array<{ id: number; state: string; amount_total: number }>>(
+      "sale.order",
+      "read",
+      { ids: [orderId], fields: ["id", "state", "amount_total"] },
+      ODOO_WRITE_API_KEY
     );
-    // A redirect (Odoo's controller always sends one, success or not) means
-    // the request was actually handled; anything else means it wasn't, and
-    // whatever confirms the order next is whatever Paystack's webhook does
-    // on its own — this is best-effort, not the only path to confirmation.
-    if (res.status < 300 || res.status >= 400) {
-      console.warn("[odoo] Paystack verify call returned unexpected status:", res.status);
+    // Already confirmed (the browser callback and the webhook can both
+    // land) or the order no longer exists — either way, nothing to do.
+    if (!order || order.state === "sale" || order.state === "done") return;
+
+    const expectedMinor = Math.round(order.amount_total * CURRENCY_MINOR_UNITS);
+    if (verification.amount !== expectedMinor) {
+      console.warn(
+        "[paystack] amount mismatch for order",
+        orderId,
+        "— expected",
+        expectedMinor,
+        "got",
+        verification.amount
+      );
+      return;
+    }
+
+    try {
+      await callJson2("sale.order", "action_confirm", { ids: [orderId] }, ODOO_WRITE_API_KEY);
+    } catch {
+      await callJson2(
+        "sale.order",
+        "write",
+        { ids: [orderId], vals: { state: "sale" } },
+        ODOO_WRITE_API_KEY
+      );
     }
   } catch (err) {
-    console.warn("[odoo] Paystack verify call failed:", err);
+    console.warn("[paystack] verify failed for order", orderId, err);
   }
 }
 
@@ -442,8 +433,6 @@ export async function placeOrder(
     amountUntaxed: order?.amount_untaxed ?? amountTotal,
     confirmed: confirm,
     payment:
-      confirm || amountTotal <= 0
-        ? null
-        : await createPaystackTransaction(orderId, partnerId, amountTotal),
+      confirm || amountTotal <= 0 ? null : await createPaystackTransaction(orderId, amountTotal),
   };
 }

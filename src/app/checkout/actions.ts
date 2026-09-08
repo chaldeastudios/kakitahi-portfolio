@@ -259,34 +259,39 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * The second half of a paid checkout: called once Paystack's own inline
- * modal reports success, to have Odoo verify the payment and, only if that
+ * modal reports success, to verify the payment and, only if that
  * verification actually says so, confirm the order and release the files.
  *
  * The modal's own callback is never treated as proof of payment — it is
- * only the cue to ask Odoo to check. verifyPaystackPayment() re-fetches the
- * transaction from Paystack using the secret key that lives only in Odoo,
- * and readOrderForConfirmation() then reads back what actually happened,
- * which is the only thing this function trusts.
+ * only the cue to check. verifyPaystackPayment() re-fetches the transaction
+ * from Paystack itself using the secret key (which lives only in this
+ * deployment's environment, not in Odoo — see lib/checkout/paystack), and
+ * readOrderForConfirmation() then reads back what actually happened, which
+ * is the only thing this function trusts.
  *
- * That confirmation isn't always instant: Odoo's own verify call to
- * Paystack is a network round trip, and the order can equally land as
- * confirmed via Paystack's webhook arriving a moment later rather than via
- * this call at all. Checking exactly once, immediately, caught that gap in
- * testing — a payment that had genuinely gone through still got told back
- * "wasn't confirmed", which is a worse outcome than a slower success
- * screen. So this gives it a few seconds and a few tries before it will
- * actually report a failure.
+ * That confirmation isn't always instant: the verify call to Paystack is a
+ * network round trip, and the order can equally land as confirmed via
+ * Paystack's webhook arriving a moment later rather than via this call at
+ * all. Checking exactly once, immediately, caught that gap in testing — a
+ * payment that had genuinely gone through still got told back "wasn't
+ * confirmed", which is a worse outcome than a slower success screen. So
+ * this gives it a few seconds and a few tries before it will actually
+ * report a failure.
  */
 export async function confirmPaystackPayment(
   orderId: number,
   reference: string
 ): Promise<OrderResult> {
   try {
-    let order = await verifyPaystackPayment(reference).then(() => readOrderForConfirmation(orderId));
+    let order = await verifyPaystackPayment(reference, orderId).then(() =>
+      readOrderForConfirmation(orderId)
+    );
 
     for (let attempt = 0; !order?.confirmed && attempt < 5; attempt++) {
       await sleep(1500);
-      order = await verifyPaystackPayment(reference).then(() => readOrderForConfirmation(orderId));
+      order = await verifyPaystackPayment(reference, orderId).then(() =>
+        readOrderForConfirmation(orderId)
+      );
     }
 
     if (!order || !order.confirmed) {
