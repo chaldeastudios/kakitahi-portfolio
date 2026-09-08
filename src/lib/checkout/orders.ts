@@ -189,11 +189,17 @@ async function createPaystackTransaction(
 export async function verifyPaystackPayment(reference: string): Promise<void> {
   if (!ODOO_URL) return;
   try {
-    await fetch(`${ODOO_URL}/payment/paystack/return?reference=${encodeURIComponent(reference)}`, {
-      method: "GET",
-      redirect: "manual",
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `${ODOO_URL}/payment/paystack/return?reference=${encodeURIComponent(reference)}`,
+      { method: "GET", redirect: "manual", cache: "no-store" }
+    );
+    // A redirect (Odoo's controller always sends one, success or not) means
+    // the request was actually handled; anything else means it wasn't, and
+    // whatever confirms the order next is whatever Paystack's webhook does
+    // on its own — this is best-effort, not the only path to confirmation.
+    if (res.status < 300 || res.status >= 400) {
+      console.warn("[odoo] Paystack verify call returned unexpected status:", res.status);
+    }
   } catch (err) {
     console.warn("[odoo] Paystack verify call failed:", err);
   }
