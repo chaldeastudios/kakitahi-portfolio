@@ -1,7 +1,8 @@
 import Button from "@/components/ui/Button";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import ImageSlideshow from "@/components/ui/ImageSlideshow";
-import { SERVICES, type ServiceItem } from "@/lib/content";
+import { SERVICES } from "@/lib/content";
+import type { OdooService } from "@/lib/odoo/content";
 
 /**
  * Services — Framer node "Services" (V5BQzUvm0). 2-column grid.
@@ -21,15 +22,11 @@ import { SERVICES, type ServiceItem } from "@/lib/content";
  *        ImageSlideshow 240x180 + List (maxWidth 350px, gap 8px)
  *          each row: 10x10 /Yellow square + label (Geist 500)
  *
- * `items` defaults to the static SERVICES.items but is meant to be
- * supplied live from Odoo (src/lib/odoo/content.ts getServices()) by the
- * page — see app/page.tsx.
+ * `items` is supplied live from Odoo (src/lib/odoo/content.ts
+ * getServices()) by the page — see app/page.tsx. No static fallback: a
+ * failed fetch is this route's error.tsx, not a stale placeholder list.
  */
-export default function Services({
-  items = SERVICES.items,
-}: {
-  items?: readonly ServiceItem[];
-} = {}) {
+export default function Services({ items }: { items: OdooService[] }) {
   return (
     <section id="services" className="grid w-full grid-cols-1 tablet:grid-cols-2">
       {/* Heading */}

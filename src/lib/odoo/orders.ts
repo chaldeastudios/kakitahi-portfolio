@@ -2,8 +2,7 @@ import "server-only";
 import { ODOO_WRITE_API_KEY } from "./config";
 import { callJson2 } from "./json2";
 import { getProducts } from "./content";
-import { withOdooFallback } from "./safe";
-import { PRODUCTS, type Product } from "@/lib/products";
+import type { Product } from "@/lib/products";
 
 /**
  * A customer's own order history, read straight out of Odoo.
@@ -134,7 +133,7 @@ async function readOrders(partnerId: number): Promise<OrderView[]> {
       },
       ODOO_WRITE_API_KEY
     ),
-    withOdooFallback("getProducts", getProducts, PRODUCTS),
+    getProducts(),
   ]);
 
   return orders.map((order) => ({

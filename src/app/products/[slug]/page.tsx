@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageTemplate from "@/components/layout/PageTemplate";
@@ -8,8 +9,7 @@ import AddToCart from "@/components/cart/AddToCart";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { ArrowUpRight } from "@/components/ui/icons";
 import { getProducts } from "@/lib/odoo/content";
-import { withOdooFallback } from "@/lib/odoo/safe";
-import { PRODUCTS, getProduct, getNextProduct, type Product } from "@/lib/products";
+import type { Product } from "@/lib/products";
 import { getSession } from "@/lib/auth/session";
 import { getOwnedProductIds } from "@/lib/odoo/orders";
 import { createDownloadToken } from "@/lib/checkout/signing";
@@ -33,8 +33,15 @@ import { createDownloadToken } from "@/lib/checkout/signing";
  * Imagery is Odoo's own eCommerce Media, served through /api/odoo/media.
  */
 
+/**
+ * connection() excludes this route from build-time prerendering — without
+ * it, `next build` tries to fetch Odoo at build time and fails outright if
+ * it's unreachable then, instead of just rendering dynamically once
+ * deployed. See the same note on app/page.tsx.
+ */
 async function loadProducts(): Promise<Product[]> {
-  return withOdooFallback("getProducts", getProducts, PRODUCTS);
+  await connection();
+  return getProducts();
 }
 
 export async function generateMetadata({
@@ -44,7 +51,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const products = await loadProducts();
-  const product = products.find((p) => p.slug === slug) ?? getProduct(slug);
+  const product = products.find((p) => p.slug === slug);
   if (!product) return { title: "Product not found — Isaiah Kakitahi" };
   return {
     title: `${product.title} — ${product.tagline || product.kind} — Isaiah Kakitahi`,
@@ -69,11 +76,11 @@ export default async function ProductPage({
 }) {
   const { slug } = await params;
   const products = await loadProducts();
-  const product = products.find((p) => p.slug === slug) ?? getProduct(slug);
+  const product = products.find((p) => p.slug === slug);
   if (!product) notFound();
 
   const i = products.findIndex((p) => p.slug === slug);
-  const next = i >= 0 ? products[(i + 1) % products.length] : getNextProduct(slug);
+  const next = products[(i + 1) % products.length];
 
   // What a signed-in customer already owns changes what this page offers:
   // a template limited to one per customer becomes "you have this, here it

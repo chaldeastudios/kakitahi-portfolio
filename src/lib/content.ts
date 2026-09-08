@@ -68,97 +68,19 @@ export const WORKS = {
   slogan: "Quality work speaks for itself.",
 } as const;
 
-const IMG = "https://framerusercontent.com/images/";
-
-/** Shape shared by the static SERVICES.items entries and Odoo's OdooService
- *  fetcher (src/lib/odoo/content.ts), so Services.tsx can render either. */
-export type ServiceItem = {
-  number: string;
-  title: string;
-  description: string;
-  images: readonly string[];
-  list: readonly string[];
-};
-
+/**
+ * The Services section's fixed copy — heading, description, CTA. The
+ * service listing itself (`items`) is not here: it is Odoo content
+ * (src/lib/odoo/content.ts getServices()), read live and passed to
+ * Services.tsx by the page with no static fallback. This used to also hold
+ * a static `items` array kept as a fallback for a failed Odoo fetch; that's
+ * gone — see error.tsx.
+ */
 export const SERVICES = {
   heading: "Services",
   description:
     "I don't offer packages. I take on work that has a real problem at the center of it and stay until it's solved. I've learned that the problem on the brief is rarely the actual problem. Here's where I tend to start.",
   cta: { label: "Book A Call", href: "/#contact", newTab: false },
-  items: [
-    {
-      number: "01.",
-      title: "Website Design & Development",
-      description:
-        "Every site is scoped individually — layout, content architecture, responsiveness, and performance — whether that's a simple personal-brand page or a full CMS-driven build. Structurally clean, and built to stay that way after handover.",
-      images: [
-        IMG + "qSbP5d1N7frJ767lfsDA5zMlCQ.png",
-        IMG + "Fpyp5QZCMdQE8XvNXoNPjxl3U.png",
-        IMG + "utlrkOA0ZrqeRmJ9SZTbFsPVg8.png",
-        IMG + "J2P6nMgtq4X7USnFotPtPhZOus.png",
-      ],
-      list: [
-        "Layout and content architecture",
-        "Responsive and mobile passes",
-        "CMS structure clients can actually run",
-        "Performance and QA before launch",
-      ],
-    },
-    {
-      number: "02.",
-      title: "Brand & Visual Identity",
-      description:
-        "Logo, colour, type, and tone worked out together, so a brand reads as one coherent thing across a website, its socials, and everything else it touches. Considered rather than templated.",
-      images: [
-        IMG + "zFLkW6oOjRSoMVej6nE4gfRWdo.png",
-        IMG + "l6wmIAMt9QPZoQMIvJIxkWHcyTc.png",
-        IMG + "9XTL9szQaMBytrDBH2H4JqPw3k.png",
-        IMG + "6DZyEJB7smR8ziOorwtLvNSnU4.png",
-      ],
-      list: [
-        "Logo and wordmark systems",
-        "Colour and type direction",
-        "Tone of voice and naming",
-        "Applied across site and socials",
-      ],
-    },
-    {
-      number: "03.",
-      title: "Automation & AI-Enabled Systems",
-      description:
-        "Custom integrations, APIs, payment logic, and AI agents. ReplyFrame — a comment-and-review plugin with its own SaaS-style backend — runs live in the Framer Marketplace, and AI risk-assessment tooling is in delivery for a boutique advisory firm.",
-      images: [
-        IMG + "pNLypb7Wpxof64WLy9dLPDO4xnc.png",
-        IMG + "RQ0zdd8V10J8K276Dap2nvaw6k.png",
-        IMG + "IbJRMYSgT67BYxkR59babBrdY.png",
-        IMG + "o2549oWvSGPuCj5iGLzKY0DgBlY.png",
-      ],
-      list: [
-        "API and third-party integrations",
-        "Booking and data-driven logic",
-        "AI-assisted internal tooling",
-        "Products shipped, not experiments",
-      ],
-    },
-    {
-      number: "04.",
-      title: "Design Partnership",
-      description:
-        "An ongoing retainer for people who need continuous support across more than one site rather than a single delivery — new sections, priority turnaround, and someone who already knows the system instead of relearning it each time.",
-      images: [
-        IMG + "kFRYEnVn5bWeRYEoW3AlrlcPg2M.png",
-        IMG + "E7rZMWfeggYeBUCpYDelsmUaQs.png",
-        IMG + "OdjLuEU2YaCfWTn79Uv23EHizs.png",
-        IMG + "n5vta4ihBQLaipun8N4fbZQcJ0.png",
-      ],
-      list: [
-        "Continuous iteration, not one delivery",
-        "Priority turnaround",
-        "Support across multiple sites",
-        "Scope agreed monthly, upfront",
-      ],
-    },
-  ],
 } as const;
 
 export const TESTIMONIALS = {

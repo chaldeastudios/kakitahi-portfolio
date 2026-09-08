@@ -14,9 +14,7 @@ import { requireStaff } from "@/lib/auth/staff";
 import { ODOO_WRITE_API_KEY } from "@/lib/odoo/config";
 import { callJson2 } from "@/lib/odoo/json2";
 import { getProducts } from "@/lib/odoo/content";
-import { withOdooFallback } from "@/lib/odoo/safe";
 import { getAllProjects } from "@/lib/odoo/projects";
-import { PRODUCTS } from "@/lib/products";
 
 /**
  * /admin — the studio's own view of the site, for an internal Odoo user.
@@ -51,7 +49,7 @@ export default async function AdminPage() {
   const session = await requireStaff();
 
   const [products, projectsResult, orders, customers] = await Promise.all([
-    withOdooFallback("getProducts", getProducts, PRODUCTS),
+    getProducts(),
     getAllProjects(),
     callJson2<
       Array<{

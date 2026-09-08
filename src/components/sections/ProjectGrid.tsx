@@ -1,19 +1,20 @@
 import ProjectCard from "@/components/ui/ProjectCard";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
-import { PROJECTS, type Project } from "@/lib/projects";
+import type { Project } from "@/lib/projects";
 
 /**
  * ProjectGrid — the Framer "Projects" grid (SPDqi3Js_): a 2-column,
  * 2-row grid of Project Cards that spans both columns of its parent.
  *
- * Shared by the home page's Works section and the /projects page, and
- * driven by the projects dataset so both stay in step.
+ * Shared by the home page's Works section and the /projects page, both of
+ * which supply `projects` live from Odoo. No static fallback: a failed
+ * fetch is the route's error.tsx, not a stale placeholder grid.
  */
 export default function ProjectGrid({
-  projects = PROJECTS,
+  projects,
   className = "",
 }: {
-  projects?: Project[];
+  projects: Project[];
   className?: string;
 }) {
   return (

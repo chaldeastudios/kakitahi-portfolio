@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import PageTemplate from "@/components/layout/PageTemplate";
 import PageHero from "@/components/sections/PageHero";
 import ProjectGrid from "@/components/sections/ProjectGrid";
 import Testimonials from "@/components/sections/Testimonials";
 import Cta from "@/components/sections/Cta";
 import { getCaseStudies } from "@/lib/odoo/content";
-import { withOdooFallback } from "@/lib/odoo/safe";
-import { PROJECTS } from "@/lib/projects";
 
 /**
  * /projects — Framer page ohMtTqn_g, Desktop frame jtvXP_V8A.
@@ -25,7 +24,10 @@ export const metadata: Metadata = {
 };
 
 export default async function ProjectsPage() {
-  const projects = await withOdooFallback("getCaseStudies", getCaseStudies, PROJECTS);
+  // Excludes this page from build-time prerendering — see the same note
+  // on app/page.tsx.
+  await connection();
+  const projects = await getCaseStudies();
 
   return (
     <PageTemplate>

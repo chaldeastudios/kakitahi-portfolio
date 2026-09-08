@@ -10,8 +10,7 @@ import {
 } from "@/lib/checkout/orders";
 import { createDownloadToken } from "@/lib/checkout/signing";
 import { getProducts } from "@/lib/odoo/content";
-import { withOdooFallback } from "@/lib/odoo/safe";
-import { PRODUCTS, type Product } from "@/lib/products";
+import type { Product } from "@/lib/products";
 import { isCheckoutConfigured } from "@/lib/odoo/config";
 import { getSession } from "@/lib/auth/session";
 
@@ -88,7 +87,21 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
   if (!EMAIL.test(email)) return { ok: false, error: "That email address doesn't look right." };
   if (!input.lines?.length) return { ok: false, error: "Your cart is empty." };
 
-  const catalogue = await withOdooFallback("getProducts", getProducts, PRODUCTS);
+  // No static fallback here: pricing or confirming an order against a
+  // fabricated catalogue would be wrong, not just stale, so a failed fetch
+  // is reported as a real "can't order right now" rather than silently
+  // priced against fake data.
+  let catalogue: Product[];
+  try {
+    catalogue = await getProducts();
+  } catch (err) {
+    console.warn("[checkout] could not load the catalogue:", err);
+    return {
+      ok: false,
+      error:
+        "Ordering is not available right now. Please try again in a moment, or use the marketplace link on the product page.",
+    };
+  }
 
   // Resolve the cart against the live catalogue, clamping every quantity to
   // the product's own limit and dropping anything that no longer exists or
@@ -302,7 +315,7 @@ export async function confirmPaystackPayment(
       };
     }
 
-    const catalogue = await withOdooFallback("getProducts", getProducts, PRODUCTS);
+    const catalogue = await getProducts();
     const items: OrderedItem[] = order.lines.map((line) => {
       const product = catalogue.find((p: Product) => p.productId === line.productId);
       return {

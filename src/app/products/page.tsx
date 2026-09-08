@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import PageTemplate from "@/components/layout/PageTemplate";
 import PageHero from "@/components/sections/PageHero";
 import ProductCard from "@/components/ui/ProductCard";
 import Cta from "@/components/sections/Cta";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { getProducts } from "@/lib/odoo/content";
-import { withOdooFallback } from "@/lib/odoo/safe";
-import { PRODUCTS } from "@/lib/products";
 
 /**
  * /products — the things anyone can pick up and use, as opposed to the
@@ -14,7 +13,9 @@ import { PRODUCTS } from "@/lib/products";
  * PageHero, a 2-column grid of cards, the shared closing CTA.
  *
  * Read live from Odoo (product.template, category "Chaldea Studios
- * Products", id 8), falling back to src/lib/products.ts.
+ * Products"), briefly cached — see CONTENT_CACHE_SECONDS in
+ * src/lib/odoo/content.ts — with no static fallback: a failed fetch is
+ * this route's error.tsx, not a stale catalogue with wrong prices.
  */
 export const metadata: Metadata = {
   title: "Products — Isaiah Kakitahi",
@@ -23,7 +24,10 @@ export const metadata: Metadata = {
 };
 
 export default async function ProductsPage() {
-  const products = await withOdooFallback("getProducts", getProducts, PRODUCTS);
+  // Excludes this page from build-time prerendering — see the same note
+  // on app/page.tsx.
+  await connection();
+  const products = await getProducts();
 
   return (
     <PageTemplate>

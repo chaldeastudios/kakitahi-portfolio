@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageTemplate from "@/components/layout/PageTemplate";
@@ -7,9 +8,7 @@ import Cta from "@/components/sections/Cta";
 import ProjectVideos from "@/components/ui/ProjectVideos";
 import { Reveal } from "@/components/ui/Reveal";
 import { ArrowUpRight } from "@/components/ui/icons";
-import { PROJECTS, getProject as getStaticProject, getNextProject as getStaticNextProject } from "@/lib/projects";
 import { getCaseStudies } from "@/lib/odoo/content";
-import { withOdooFallback } from "@/lib/odoo/safe";
 
 /**
  * /projects/[slug] — Framer page yYdS2aTdj, Desktop frame ifiBoypAh.
@@ -44,17 +43,20 @@ import { withOdooFallback } from "@/lib/odoo/safe";
  */
 
 /**
- * No generateStaticParams here: the set of valid slugs is now live Odoo
- * content, not something fully knowable at build time. A no-store fetch
- * inside getCaseStudies() makes this route dynamic anyway — see the
- * README "Odoo integration" trade-off note. Unknown slugs still 404 via
- * notFound() below, whichever source (Odoo or the static fallback)
- * resolved.
+ * No generateStaticParams here: the set of valid slugs is live Odoo
+ * content, not something fully knowable at build time. Case studies are
+ * cached briefly (see CONTENT_CACHE_SECONDS in src/lib/odoo/content.ts)
+ * with no static fallback — a failed fetch is this route's error.tsx, and
+ * an unknown slug still 404s via notFound() below.
  */
 
-/** The live project list for this request, falling back to PROJECTS. */
+/**
+ * connection() excludes this route from build-time prerendering — see the
+ * same note on app/page.tsx.
+ */
 async function loadProjects() {
-  return withOdooFallback("getCaseStudies", getCaseStudies, PROJECTS);
+  await connection();
+  return getCaseStudies();
 }
 
 export async function generateMetadata({
@@ -64,7 +66,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const projects = await loadProjects();
-  const project = projects.find((p) => p.slug === slug) ?? getStaticProject(slug);
+  const project = projects.find((p) => p.slug === slug);
   if (!project) return { title: "Project not found — Isaiah Kakitahi" };
   return {
     title: `${project.title} — Isaiah Kakitahi`,
@@ -124,14 +126,11 @@ export default async function ProjectPage({
 }) {
   const { slug } = await params;
   const projects = await loadProjects();
-  const project = projects.find((p) => p.slug === slug) ?? getStaticProject(slug);
+  const project = projects.find((p) => p.slug === slug);
   if (!project) notFound();
 
   const projectIndex = projects.findIndex((p) => p.slug === slug);
-  const next =
-    projectIndex >= 0
-      ? projects[(projectIndex + 1) % projects.length]
-      : getStaticNextProject(slug);
+  const next = projects[(projectIndex + 1) % projects.length];
   const [img1, img2, img3, img4, img5, img6, img7] = project.images;
 
   return (

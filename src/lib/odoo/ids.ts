@@ -30,15 +30,32 @@ import { callJson2 } from "./json2";
  *
  * Both are wrapped in cache() so a render that needs the same id more
  * than once shares one lookup; a fresh request always re-resolves.
+ *
+ * Both also default to a 5-minute Next fetch-cache window (see
+ * revalidateSeconds on callJson2): a category or blog is not renamed from
+ * one minute to the next, and Odoo Online enforces its own rate limit on
+ * this API, so re-resolving the same id on every single request across
+ * every visitor is both needless and exactly what trips that limit. Pass
+ * revalidateSeconds explicitly to shorten or disable it for a call that
+ * genuinely needs the live value.
  */
 
+const DEFAULT_ID_CACHE_SECONDS = 300;
+
 export const resolveIdByName = cache(
-  async (model: string, nameField: string, name: string, apiKey: string): Promise<number> => {
+  async (
+    model: string,
+    nameField: string,
+    name: string,
+    apiKey: string,
+    revalidateSeconds: number = DEFAULT_ID_CACHE_SECONDS
+  ): Promise<number> => {
     const [row] = await callJson2<Array<{ id: number }>>(
       model,
       "search_read",
       { domain: [[nameField, "=", name]], fields: ["id"], limit: 1 },
-      apiKey
+      apiKey,
+      revalidateSeconds
     );
     if (!row) {
       throw new Error(
@@ -50,12 +67,18 @@ export const resolveIdByName = cache(
 );
 
 export const resolveXmlId = cache(
-  async (module: string, name: string, apiKey: string): Promise<number> => {
+  async (
+    module: string,
+    name: string,
+    apiKey: string,
+    revalidateSeconds: number = DEFAULT_ID_CACHE_SECONDS
+  ): Promise<number> => {
     const [row] = await callJson2<Array<{ res_id: number }>>(
       "ir.model.data",
       "search_read",
       { domain: [["module", "=", module], ["name", "=", name]], fields: ["res_id"], limit: 1 },
-      apiKey
+      apiKey,
+      revalidateSeconds
     );
     if (!row) {
       throw new Error(`[odoo] external id "${module}.${name}" not found on this database.`);

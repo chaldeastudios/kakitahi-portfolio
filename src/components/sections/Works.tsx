@@ -2,7 +2,7 @@ import Button from "@/components/ui/Button";
 import { Reveal } from "@/components/ui/Reveal";
 import ProjectGrid from "./ProjectGrid";
 import { WORKS } from "@/lib/content";
-import { PROJECTS, type Project } from "@/lib/projects";
+import type { Project } from "@/lib/projects";
 
 /**
  * Works — Framer node "Works" (lZbF1iErZ). 2-column grid, rows fit.
@@ -17,15 +17,11 @@ import { PROJECTS, type Project } from "@/lib/projects";
  *                            justify end -> Heading 5
  *  Projects (SPDqi3Js_)  2x2 grid, gridColumnSpan 2 -> Project Cards
  *
- * `projects` defaults to the static PROJECTS dataset but is meant to be
- * supplied live from Odoo (src/lib/odoo/content.ts getCaseStudies()) by
- * the page — see app/page.tsx.
+ * `projects` is supplied live from Odoo (src/lib/odoo/content.ts
+ * getCaseStudies()) by the page — see app/page.tsx. No static fallback: a
+ * failed fetch is this route's error.tsx, not a stale placeholder grid.
  */
-export default function Works({
-  projects = PROJECTS,
-}: {
-  projects?: Project[];
-} = {}) {
+export default function Works({ projects }: { projects: Project[] }) {
   return (
     <section id="works" className="grid w-full grid-cols-1 tablet:grid-cols-2">
       {/* Heading */}

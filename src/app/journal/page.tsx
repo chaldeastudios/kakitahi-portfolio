@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import PageTemplate from "@/components/layout/PageTemplate";
 import PageHero from "@/components/sections/PageHero";
 import JournalCard from "@/components/ui/JournalCard";
 import Cta from "@/components/sections/Cta";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { getJournalPosts } from "@/lib/odoo/content";
-import { withOdooFallback } from "@/lib/odoo/safe";
-import { JOURNAL } from "@/lib/journal";
 
 /**
  * /journal — the listing, built on the same frame as /projects
@@ -14,8 +13,9 @@ import { JOURNAL } from "@/lib/journal";
  * cards, then the shared closing CTA. There is deliberately no journal
  * section on the home page; the header nav is the way in.
  *
- * Entries are read live from Odoo (blog "Our blog", id 1) and fall back
- * to src/lib/journal.ts if that fetch fails — see src/lib/odoo/safe.ts.
+ * Entries are read live from Odoo (blog "Our blog"), briefly cached — see
+ * CONTENT_CACHE_SECONDS in src/lib/odoo/content.ts — with no static
+ * fallback: a failed fetch is this route's error.tsx.
  */
 export const metadata: Metadata = {
   title: "Journal — Isaiah Kakitahi",
@@ -24,7 +24,10 @@ export const metadata: Metadata = {
 };
 
 export default async function JournalPage() {
-  const posts = await withOdooFallback("getJournalPosts", getJournalPosts, JOURNAL);
+  // Excludes this page from build-time prerendering — see the same note
+  // on app/page.tsx.
+  await connection();
+  const posts = await getJournalPosts();
   // Newest first here — the dataset and Odoo both return oldest first.
   const newestFirst = [...posts].reverse();
 

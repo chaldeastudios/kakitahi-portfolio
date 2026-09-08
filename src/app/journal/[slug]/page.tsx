@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageTemplate from "@/components/layout/PageTemplate";
@@ -6,13 +7,7 @@ import PageHero from "@/components/sections/PageHero";
 import Cta from "@/components/sections/Cta";
 import { Reveal } from "@/components/ui/Reveal";
 import { getJournalPosts } from "@/lib/odoo/content";
-import { withOdooFallback } from "@/lib/odoo/safe";
-import {
-  JOURNAL,
-  getJournalEntry,
-  getNextJournalEntry,
-  type JournalPost,
-} from "@/lib/journal";
+import type { JournalPost } from "@/lib/journal";
 
 /**
  * /journal/[slug] — one entry, on the same frame as a project case study
@@ -25,13 +20,19 @@ import {
  * the body is a single measured reading column instead — the same borders,
  * markers and type, set at a width that stays readable over long passages.
  *
- * No generateStaticParams: the valid slugs are live Odoo content, and the
- * no-store fetch inside getJournalPosts() makes this route dynamic anyway.
- * Unknown slugs still 404 through notFound(), whichever source resolved.
+ * No generateStaticParams: the valid slugs are live Odoo content. Entries
+ * are cached briefly (see CONTENT_CACHE_SECONDS in
+ * src/lib/odoo/content.ts) with no static fallback — a failed fetch is
+ * this route's error.tsx, and an unknown slug still 404s via notFound().
  */
 
+/**
+ * connection() excludes this route from build-time prerendering — see the
+ * same note on app/page.tsx.
+ */
 async function loadEntries(): Promise<JournalPost[]> {
-  return withOdooFallback("getJournalPosts", getJournalPosts, JOURNAL);
+  await connection();
+  return getJournalPosts();
 }
 
 export async function generateMetadata({
@@ -41,7 +42,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const entries = await loadEntries();
-  const entry = entries.find((p) => p.slug === slug) ?? getJournalEntry(slug);
+  const entry = entries.find((p) => p.slug === slug);
   if (!entry) return { title: "Entry not found — Isaiah Kakitahi" };
   return {
     title: `${entry.title} — Journal — Isaiah Kakitahi`,
@@ -66,11 +67,11 @@ export default async function JournalEntryPage({
 }) {
   const { slug } = await params;
   const entries = await loadEntries();
-  const entry = entries.find((p) => p.slug === slug) ?? getJournalEntry(slug);
+  const entry = entries.find((p) => p.slug === slug);
   if (!entry) notFound();
 
   const i = entries.findIndex((p) => p.slug === slug);
-  const next = i >= 0 ? entries[(i + 1) % entries.length] : getNextJournalEntry(slug);
+  const next = entries[(i + 1) % entries.length];
 
   return (
     <PageTemplate>

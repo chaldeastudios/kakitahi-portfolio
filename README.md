@@ -43,14 +43,14 @@ src/
   lib/checkout/signing.ts  HMAC for the download links
   app/status/               /status — live Odoo connection diagnostics
   app/not-found.tsx        /404
-  lib/content.ts           home page copy — services, testimonials, CTA, footer
-  lib/projects.ts          the five project case studies (static fallback dataset)
-  lib/journal.ts           the six journal entries (static fallback dataset)
-  lib/products.ts          ReplyFrame + Bernaum (static fallback dataset)
+  lib/content.ts           home page's own fixed copy — hero, about, testimonials, CTA, footer
+  lib/projects.ts          Project/ProjectImage types (content is Odoo's; see lib/odoo/content.ts)
+  lib/journal.ts           JournalPost type (content is Odoo's)
+  lib/products.ts          Product type (content is Odoo's)
+  lib/odoo/ids.ts           resolves an Odoo id by name/external id, not a hardcoded number
   lib/odoo/config.ts        env-based Odoo connection config
-  lib/odoo/json2.ts         Odoo 19 JSON-2 API client (bearer token, no session)
-  lib/odoo/content.ts       fetches + parses live services/case studies/journal
-  lib/odoo/safe.ts          wraps a live fetch with a static fallback
+  lib/odoo/json2.ts         Odoo 19 JSON-2 API client (bearer token, no session, retries a 429)
+  lib/odoo/content.ts       fetches + parses live services/case studies/products/journal
   lib/odoo/status.ts        the checks /status runs
   components/layout/       PageTemplate (header + footer + pattern ground)
   components/ui/           Button, TextLink, FooterLink, Logo, MenuButton,
@@ -85,19 +85,29 @@ calls made when porting it here:
 
 ## Odoo integration
 
-**Status: wired and live-ready. Falls back to static data until the
-connection is configured; then works with no further code changes.**
+**Status: wired and live. No static fallback — a page that can't reach
+Odoo shows this site's own error.tsx rather than stale placeholder
+content.**
 
-The user's real Odoo instance (`chaldeastudios` Kakitahi, Odoo 19) is the
-source of truth for services, products, project case studies, and journal
-entries — and, since the checkout, for the orders those products generate:
+Odoo is the source of truth for services, products, project case studies,
+and journal entries — and, since the checkout, for the orders those
+products generate:
 
 | Odoo model | Holds |
 |---|---|
-| `product.template` (categ `Chaldea Studios Services`, id 7) | The 4 real service offerings (ids 22–25) |
-| `product.template` (categ `Chaldea Studios Products`, id 8) | ReplyFrame (id 26), Bernaum (id 28) |
-| `blog.post` in blog `Portfolio` (id 2), tagged `Case Study` (tag id 1) | The 5 project case studies (ids 1–5) |
-| `blog.post` in blog `Our blog` (id 1), tagged `Journal` (tag id 2) | The 6 real journal entries (ids 6–11) |
+| `product.template` in category `Chaldea Studios Services` | The real service offerings |
+| `product.template` in category `Chaldea Studios Products` | ReplyFrame, Bernaum |
+| `blog.post` in blog `Portfolio`, tagged `Case Study` | The project case studies |
+| `blog.post` in blog `Our blog` | The journal entries |
+
+None of these are looked up by a hardcoded numeric id — every category,
+blog and tag above is resolved live by its **name** (`resolveIdByName`),
+and Odoo's own `base.group_portal` by its **external id**
+(`resolveXmlId`), both in `src/lib/odoo/ids.ts`. A record id an
+`create()` call gets back is only ever a property of the database that
+created it; it is not guaranteed to survive a migration to a different
+Odoo instance the way this site's backend has already moved once, from a
+self-hosted box to Odoo Online. A name or an external id is.
 
 **Where to edit them in Odoo.** Services and products are ordinary
 products: **Sales → Products → Products**, filter by category *Chaldea
@@ -136,8 +146,8 @@ Odoo's own rich-text editor without opening the code view.
 
 To keep that failure mode from ever being silent again, each fetcher runs an
 `assertParsed()` check: records fetched but parsed structurally empty throws,
-so `withOdooFallback` engages and the reason lands in the server log, rather
-than a section of the live site quietly rendering blank.
+which surfaces as the calling route's error.tsx with the reason in the
+server log, rather than a section of the live site quietly rendering blank.
 
 **How it connects.** Odoo 19's External JSON-2 API
 (`POST /json/2/<model>/<method>`, `Authorization: bearer <api_key>`, no
@@ -156,17 +166,18 @@ and form submissions.
 **What's wired.** The home page, `/projects`, `/projects/[slug]`,
 `/products`, `/products/[slug]`, `/journal` and `/journal/[slug]` all fetch
 live: `getCaseStudies()`, `getServices()`, `getProducts()` and
-`getJournalPosts()` in `src/lib/odoo/content.ts`.
-Each call is wrapped in `withOdooFallback()` (`src/lib/odoo/safe.ts`),
-which falls back to the static datasets (`content.ts`, `projects.ts`,
-`journal.ts`, `products.ts`) if the live fetch fails for any reason — not
-configured, network hiccup,
-Odoo down — so a connection issue degrades to "shows the same content it
-always did" rather than a blank page. That fallback is a deliberate
-departure from the kilele_coffee reference, which is a throwaway test
-whose whole point is proving the live connection and so shows raw errors
-with no fallback at all; this is a real site that already worked from
-static data.
+`getJournalPosts()` in `src/lib/odoo/content.ts`. None of these fall back
+to a static dataset — an earlier version of this site did, kept a
+byte-identical copy of Odoo's content in `content.ts`/`projects.ts`/
+`journal.ts`/`products.ts` for exactly that, and it turned out to be the
+wrong call in practice: a real Odoo outage looked like a working page
+showing subtly wrong content (a free price where there should be a real
+one, no images, stale copy) rather than an obvious error, which made a
+migration-era problem harder to see, not easier. Now a failed fetch just
+throws, and the nearest `error.tsx` says so plainly. The static files still
+exist for their **types** (`Product`, `Project`, `JournalPost`) — pages and
+client components need those without pulling in the `server-only` Odoo
+layer — but hold no content of their own any more.
 
 **To go live:** set three env vars, either in `.env.local` for `npm run
 dev` or as Vercel Project → Settings → Environment Variables for the
@@ -195,15 +206,37 @@ of its own, so a real misconfiguration shows up there directly rather
 than being silently masked. On Vercel, a newly added env var takes effect
 on the next deploy, not the currently running one.
 
-**Trade-off worth knowing:** `callJson2` uses `cache: "no-store"`, so once
-a real connection succeeds, Next.js takes the home page and `/projects`
-out of static prerendering and serves them dynamically per request (they
-currently build as fully static — see the build output, `○` vs `ƒ` — and
-will flip to `ƒ` on the first deploy where Odoo is actually reachable
-at build time). That's the right default for content meant to update the
-moment it's edited in Odoo; if that per-request Odoo round trip ever
-becomes a real latency or cost concern, moving to ISR (`revalidate: N`
-instead of `no-store`) is a small, isolated change in `json2.ts`.
+**Rate limits, and why some of this is cached.** Odoo Online (this site's
+backend, since a self-hosted Odoo box has no such limit) enforces its own
+platform-level rate limit on the JSON-2 API per source address — an HTTP
+429 with an Odoo-branded "Keep calm and breathe deeply" page. A page here
+that renders once can mean anywhere from one to a dozen-plus live Odoo
+calls (an id lookup, a content read, media, tax lookups for a product
+listing), uncached, on every single visit — fine against a self-hosted
+box with no limit of its own, enough to trip Odoo Online's under normal
+traffic. Two things address that, both in `src/lib/odoo/json2.ts`:
+
+- `callJson2` takes an optional `revalidateSeconds`, which switches that
+  one call from `cache: "no-store"` to Next's `next: { revalidate }` fetch
+  cache. Read-only content that any visitor could get from any other
+  visitor's request — services, case studies, products, journal entries,
+  and the id/external-id lookups in `ids.ts` — passes this
+  (`CONTENT_CACHE_SECONDS` in `content.ts`, 60s for content and 300s for
+  id resolution), so a burst of visits in the same window shares one Odoo
+  round trip instead of one each. Anything checkout- or account-scoped (an
+  order, a partner, a payment, `/status`'s own diagnostics) stays
+  uncached, because it has to be correct on every request and is low
+  enough volume that caching it was never the point.
+- A 429 is retried up to twice with a short backoff before giving up, on
+  every call, cached or not — Odoo's edge rejects the request outright
+  before any business logic runs, so, unlike a timeout, it's always safe
+  to retry without any risk of double-submitting a write.
+
+This site is not using [Cache
+Components](https://nextjs.org/docs/app/getting-started/caching) (Next 16's
+new `cacheComponents` flag, off by default) — `next.revalidate` is the
+"previous model" fetch-caching API, which is what this project's
+`next.config.ts` currently targets.
 
 ### Products: media, the deliverable, and the checkout
 

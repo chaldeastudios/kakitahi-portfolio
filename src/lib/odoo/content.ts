@@ -59,6 +59,19 @@ const JOURNAL_BLOG_NAME = "Our blog"; // blog.blog
 const SERVICES_CATEGORY_NAME = "Chaldea Studios Services"; // product.category
 const PRODUCTS_CATEGORY_NAME = "Chaldea Studios Products"; // product.category
 
+/**
+ * How long a fetch here may be served from Next's cache before Odoo is
+ * asked again. Odoo Online (this site's backend since the move off a
+ * self-hosted instance) enforces its own platform-level rate limit on this
+ * API — a limit a self-hosted box never had, so nothing here needed caching
+ * before. Everything on this page is read-only content a visitor cannot
+ * change (services, case studies, products, journal entries), so a short
+ * cache costs at most this many seconds of staleness after an edit in Odoo,
+ * in exchange for cutting this site's request volume by roughly the number
+ * of visits that land inside one window. See callJson2 in ./json2.ts.
+ */
+const CONTENT_CACHE_SECONDS = 60;
+
 /** Resolves one of the names above against ODOO_API_KEY. See ./ids.ts. */
 const resolveId = (model: string, nameField: string, name: string) =>
   resolveIdByName(model, nameField, name, ODOO_API_KEY);
@@ -86,10 +99,12 @@ function slugify(name: string): string {
 
 /**
  * Guards against the failure mode that hid the sanitiser bug: a fetch that
- * succeeds, returns records, and parses to nothing at all. Without this,
- * withOdooFallback sees no error and renders empty sections. Throwing means
- * a structurally broken record falls back to the static dataset — and says
- * why in the server log — instead of blanking a section of the live site.
+ * succeeds, returns records, and parses to nothing at all. Without this, a
+ * structurally broken record renders as an empty section rather than as
+ * the error it actually is. Throwing here means it surfaces the same way
+ * any other Odoo failure does — as the calling route's error.tsx, with the
+ * reason in the server log — instead of a page that looks fine but is
+ * quietly missing content.
  */
 function assertParsed(label: string, ok: boolean): void {
   if (!ok) {
@@ -166,7 +181,8 @@ export const getCaseStudies = cache(async (): Promise<Project[]> => {
       fields: ["id", "name", "subtitle", "content"],
       order: "id asc",
     },
-    ODOO_API_KEY
+    ODOO_API_KEY,
+    CONTENT_CACHE_SECONDS
   );
 
   const projects = posts.map((post) => {
@@ -337,7 +353,8 @@ async function getProductsByCategory(
       fields: ["id", "name", "description", "list_price", "currency_id"],
       order: "id asc",
     },
-    ODOO_API_KEY
+    ODOO_API_KEY,
+    CONTENT_CACHE_SECONDS
   );
 
   const parsed = products.map((p) => ({
@@ -440,7 +457,8 @@ export const getProducts = cache(async (): Promise<Product[]> => {
         domain: [["product_tmpl_id", "in", templateIds]],
         fields: ["id", "product_tmpl_id", "sale_ok"],
       },
-      ODOO_API_KEY
+      ODOO_API_KEY,
+      CONTENT_CACHE_SECONDS
     ),
     callJson2<Array<{ id: number; name: string; product_tmpl_id: [number, string] }>>(
       "product.image",
@@ -450,7 +468,8 @@ export const getProducts = cache(async (): Promise<Product[]> => {
         fields: ["id", "name", "product_tmpl_id"],
         order: "sequence asc, id asc",
       },
-      ODOO_API_KEY
+      ODOO_API_KEY,
+      CONTENT_CACHE_SECONDS
     ),
     callJson2<
       Array<{ id: number; name: string; res_id: number; mimetype: string; file_size: number }>
@@ -466,13 +485,15 @@ export const getProducts = cache(async (): Promise<Product[]> => {
         fields: ["id", "name", "res_id", "mimetype", "file_size"],
         order: "id asc",
       },
-      ODOO_API_KEY
+      ODOO_API_KEY,
+      CONTENT_CACHE_SECONDS
     ),
     callJson2<Array<{ id: number; taxes_id: number[] }>>(
       "product.template",
       "search_read",
       { domain: [["id", "in", templateIds]], fields: ["id", "taxes_id"] },
-      ODOO_API_KEY
+      ODOO_API_KEY,
+      CONTENT_CACHE_SECONDS
     ),
   ]);
 
@@ -482,7 +503,8 @@ export const getProducts = cache(async (): Promise<Product[]> => {
         "account.tax",
         "read",
         { ids: allTaxIds, fields: ["id", "amount", "amount_type", "price_include"] },
-        ODOO_API_KEY
+        ODOO_API_KEY,
+        CONTENT_CACHE_SECONDS
       )
     : [];
 
@@ -595,7 +617,8 @@ export async function getJournalPosts(): Promise<JournalPost[]> {
       fields: ["id", "name", "content"],
       order: "post_date asc",
     },
-    ODOO_API_KEY
+    ODOO_API_KEY,
+    CONTENT_CACHE_SECONDS
   );
 
   const parsed = posts.map((p) => parseJournalPost(p.name, p.content));
