@@ -1,4 +1,5 @@
 import "server-only";
+import { OdooJson2Error } from "./json2";
 
 /**
  * Wraps an Odoo fetch with a static fallback.
@@ -27,4 +28,46 @@ export async function withOdooFallback<T>(
     console.warn(`[odoo] ${label} failed, using static fallback:`, err);
     return fallback;
   }
+}
+
+/**
+ * Retries an Odoo fetch instead of falling back — for the one class of call
+ * where a stale static price is worse than a slow response: pricing a
+ * checkout. withOdooFallback's static datasets exist to keep a read-only
+ * page from going blank on a hiccup, but silently charging (or showing) a
+ * price that isn't Odoo's current one is a correctness bug, not a
+ * degraded page. Odoo Online's own API rate limit (HTTP 429) is the
+ * failure this exists for — it's transient, so a short backoff usually
+ * clears it — but any other error is retried too, on the same reasoning
+ * that a slow real answer beats a fast wrong one here.
+ *
+ * Exhausts its retries by re-throwing the last error rather than
+ * returning a fallback value; the caller (checkout) turns that into an
+ * honest "try again" rather than completing an order at the wrong price.
+ */
+export async function withOdooRetry<T>(
+  label: string,
+  fetchLive: () => Promise<T>,
+  attempts = 3
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      return await fetchLive();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < attempts - 1) {
+        const delayMs = 500 * 2 ** attempt;
+        console.warn(
+          `[odoo] ${label} failed (attempt ${attempt + 1}/${attempts}), retrying in ${delayMs}ms:`,
+          err
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  console.warn(`[odoo] ${label} failed after ${attempts} attempts:`, lastErr);
+  throw lastErr instanceof Error
+    ? lastErr
+    : new OdooJson2Error(0, lastErr);
 }
