@@ -90,7 +90,9 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
   // No static fallback here: pricing or confirming an order against a
   // fabricated catalogue would be wrong, not just stale, so a failed fetch
   // is reported as a real "can't order right now" rather than silently
-  // priced against fake data.
+  // priced against fake data. callJson2 already retries a 429 (Odoo
+  // Online's rate limit, the common transient cause) with a short backoff
+  // before this ever throws — see revalidateSeconds in lib/odoo/json2.ts.
   let catalogue: Product[];
   try {
     catalogue = await getProducts();
@@ -98,8 +100,7 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
     console.warn("[checkout] could not load the catalogue:", err);
     return {
       ok: false,
-      error:
-        "Ordering is not available right now. Please try again in a moment, or use the marketplace link on the product page.",
+      error: "Couldn't reach the store right now. Please try again in a moment.",
     };
   }
 

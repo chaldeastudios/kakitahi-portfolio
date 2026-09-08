@@ -9,8 +9,9 @@ import { getSession } from "@/lib/auth/session";
  * /checkout — one checkout for the whole cart, whatever is in it. The
  * catalogue is loaded here for display; every rule that decides what is
  * actually ordered is re-read inside the server action. No static
- * fallback: a failed fetch is this route's error.tsx rather than a
- * checkout page quietly built against stale, wrongly-priced products.
+ * fallback: a failed fetch is this route's error.tsx (see the checkout-
+ * specific one alongside this file) rather than a checkout page quietly
+ * built against stale, wrongly-priced products.
  */
 export const metadata: Metadata = {
   title: "Checkout — Isaiah Kakitahi",
