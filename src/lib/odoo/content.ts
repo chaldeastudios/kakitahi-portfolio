@@ -4,6 +4,7 @@ import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
 import { ODOO_API_KEY } from "./config";
 import { callJson2 } from "./json2";
+import { resolveIdByName } from "./ids";
 import type { Project, ProjectImage } from "@/lib/projects";
 import type { JournalPost } from "@/lib/journal";
 import type { Product } from "@/lib/products";
@@ -52,11 +53,15 @@ import type { Product } from "@/lib/products";
  *             .ks-intro · repeated .ks-body > h3 + p…
  */
 
-const CASE_STUDY_TAG_ID = 1; // blog.tag "Case Study"
-const PORTFOLIO_BLOG_ID = 2; // blog.blog "Portfolio"
-const JOURNAL_BLOG_ID = 1; // blog.blog "Our blog"
-const SERVICES_CATEGORY_ID = 7; // product.category "Chaldea Studios Services"
-const PRODUCTS_CATEGORY_ID = 8; // product.category "Chaldea Studios Products"
+const CASE_STUDY_TAG_NAME = "Case Study"; // blog.tag
+const PORTFOLIO_BLOG_NAME = "Portfolio"; // blog.blog
+const JOURNAL_BLOG_NAME = "Our blog"; // blog.blog
+const SERVICES_CATEGORY_NAME = "Chaldea Studios Services"; // product.category
+const PRODUCTS_CATEGORY_NAME = "Chaldea Studios Products"; // product.category
+
+/** Resolves one of the names above against ODOO_API_KEY. See ./ids.ts. */
+const resolveId = (model: string, nameField: string, name: string) =>
+  resolveIdByName(model, nameField, name, ODOO_API_KEY);
 
 function text($el: cheerio.Cheerio<AnyNode>): string {
   return $el.text().trim().replace(/\s+/g, " ");
@@ -143,6 +148,10 @@ function parseCaseStudy(
  * request — every new page view still fetches live.
  */
 export const getCaseStudies = cache(async (): Promise<Project[]> => {
+  const [blogId, tagId] = await Promise.all([
+    resolveId("blog.blog", "name", PORTFOLIO_BLOG_NAME),
+    resolveId("blog.tag", "name", CASE_STUDY_TAG_NAME),
+  ]);
   const posts = await callJson2<
     Array<{ id: number; name: string; subtitle: string; content: string }>
   >(
@@ -150,8 +159,8 @@ export const getCaseStudies = cache(async (): Promise<Project[]> => {
     "search_read",
     {
       domain: [
-        ["blog_id", "=", PORTFOLIO_BLOG_ID],
-        ["tag_ids", "in", [CASE_STUDY_TAG_ID]],
+        ["blog_id", "=", blogId],
+        ["tag_ids", "in", [tagId]],
         ["is_published", "=", true],
       ],
       fields: ["id", "name", "subtitle", "content"],
@@ -348,7 +357,8 @@ async function getProductsByCategory(
 
 /** The real service offerings, in their Odoo sequence. */
 export async function getServices(): Promise<OdooService[]> {
-  return getProductsByCategory("getServices", SERVICES_CATEGORY_ID);
+  const categoryId = await resolveId("product.category", "name", SERVICES_CATEGORY_NAME);
+  return getProductsByCategory("getServices", categoryId);
 }
 
 // --------------------------------------------------------------- products
@@ -413,7 +423,8 @@ function mediaUrl(model: string, id: number, field = "image_1920"): string {
  * own shop instead of the marketplace).
  */
 export const getProducts = cache(async (): Promise<Product[]> => {
-  const parsed = await getProductsByCategory("getProducts", PRODUCTS_CATEGORY_ID);
+  const categoryId = await resolveId("product.category", "name", PRODUCTS_CATEGORY_NAME);
+  const parsed = await getProductsByCategory("getProducts", categoryId);
   const templateIds = parsed.map((p) => p.id);
 
   // Four things live outside the description field and have to be asked
@@ -572,12 +583,13 @@ function parseJournalPost(name: string, html: string): JournalPost {
 
 /** All published journal entries, oldest first (matches the source order). */
 export async function getJournalPosts(): Promise<JournalPost[]> {
+  const blogId = await resolveId("blog.blog", "name", JOURNAL_BLOG_NAME);
   const posts = await callJson2<Array<{ id: number; name: string; content: string }>>(
     "blog.post",
     "search_read",
     {
       domain: [
-        ["blog_id", "=", JOURNAL_BLOG_ID],
+        ["blog_id", "=", blogId],
         ["is_published", "=", true],
       ],
       fields: ["id", "name", "content"],

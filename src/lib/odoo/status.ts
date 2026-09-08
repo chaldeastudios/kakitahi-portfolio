@@ -9,6 +9,7 @@ import {
   ODOO_WRITE_API_KEY,
 } from "./config";
 import { callJson2 } from "./json2";
+import { resolveIdByName, resolveXmlId } from "./ids";
 
 /**
  * Diagnostic checks for /status. Same shape as the validated
@@ -56,10 +57,16 @@ async function checkReadCredential(): Promise<CheckResult> {
     return { name, ok: false, skipped: true, detail: "ODOO_URL/ODOO_DB/ODOO_API_KEY not fully set" };
   }
   try {
+    const categoryId = await resolveIdByName(
+      "product.category",
+      "name",
+      "Chaldea Studios Services",
+      ODOO_API_KEY
+    );
     const rows = await callJson2<Array<{ id: number }>>(
       "product.template",
       "search_read",
-      { domain: [["categ_id", "=", 7]], fields: ["id"], limit: 10 },
+      { domain: [["categ_id", "=", categoryId]], fields: ["id"], limit: 10 },
       ODOO_API_KEY
     );
     return { name, ok: true, detail: `OK — found ${rows.length} service product(s)` };
@@ -74,10 +81,11 @@ async function checkCaseStudies(): Promise<CheckResult> {
     return { name, ok: false, skipped: true, detail: "ODOO_URL/ODOO_DB/ODOO_API_KEY not fully set" };
   }
   try {
+    const blogId = await resolveIdByName("blog.blog", "name", "Portfolio", ODOO_API_KEY);
     const rows = await callJson2<Array<{ id: number }>>(
       "blog.post",
       "search_read",
-      { domain: [["blog_id", "=", 2]], fields: ["id"], limit: 10 },
+      { domain: [["blog_id", "=", blogId]], fields: ["id"], limit: 10 },
       ODOO_API_KEY
     );
     return { name, ok: true, detail: `OK — found ${rows.length} case study post(s)` };
@@ -92,10 +100,11 @@ async function checkJournal(): Promise<CheckResult> {
     return { name, ok: false, skipped: true, detail: "ODOO_URL/ODOO_DB/ODOO_API_KEY not fully set" };
   }
   try {
+    const blogId = await resolveIdByName("blog.blog", "name", "Our blog", ODOO_API_KEY);
     const rows = await callJson2<Array<{ id: number }>>(
       "blog.post",
       "search_read",
-      { domain: [["blog_id", "=", 1]], fields: ["id"], limit: 10 },
+      { domain: [["blog_id", "=", blogId]], fields: ["id"], limit: 10 },
       ODOO_API_KEY
     );
     return { name, ok: true, detail: `OK — found ${rows.length} journal post(s)` };
@@ -116,10 +125,16 @@ async function checkProductMedia(): Promise<CheckResult> {
     return { name, ok: false, skipped: true, detail: "ODOO_URL/ODOO_DB/ODOO_API_KEY not fully set" };
   }
   try {
+    const categoryId = await resolveIdByName(
+      "product.category",
+      "name",
+      "Chaldea Studios Products",
+      ODOO_API_KEY
+    );
     const rows = await callJson2<Array<{ id: number }>>(
       "product.image",
       "search_read",
-      { domain: [["product_tmpl_id.categ_id", "=", 8]], fields: ["id"], limit: 1 },
+      { domain: [["product_tmpl_id.categ_id", "=", categoryId]], fields: ["id"], limit: 1 },
       ODOO_API_KEY
     );
     if (!rows.length) {
@@ -195,32 +210,24 @@ async function checkCheckout(): Promise<CheckResult> {
  * by a real sign-in, so it is not simulated here.
  */
 async function checkAccounts(): Promise<CheckResult> {
-  const name = "Customer accounts (portal users, base.group_portal id 10)";
+  const name = "Customer accounts (portal users, base.group_portal)";
   if (!isCheckoutConfigured) {
     return { name, ok: false, skipped: true, detail: "Checkout/accounts not configured" };
   }
   try {
-    const [portalUsers, group] = await Promise.all([
+    const [portalUsers, groupId] = await Promise.all([
       callJson2<Array<{ id: number }>>(
         "res.users",
         "search_read",
         { domain: [["share", "=", true]], fields: ["id"], limit: 5 },
         ODOO_WRITE_API_KEY
       ),
-      callJson2<Array<{ id: number }>>(
-        "res.groups",
-        "read",
-        { ids: [10], fields: ["id"] },
-        ODOO_WRITE_API_KEY
-      ),
+      resolveXmlId("base", "group_portal", ODOO_WRITE_API_KEY),
     ]);
-    if (!group.length) {
-      return { name, ok: false, detail: "Portal group id 10 not found on this database" };
-    }
     return {
       name,
       ok: true,
-      detail: `OK — portal group present, ${portalUsers.length} customer account(s) sampled`,
+      detail: `OK — portal group present (id ${groupId}), ${portalUsers.length} customer account(s) sampled`,
     };
   } catch (err) {
     return { name, ok: false, detail: String(err) };

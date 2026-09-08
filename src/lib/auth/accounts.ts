@@ -1,15 +1,20 @@
 import "server-only";
 import { ODOO_DB, ODOO_URL, ODOO_WRITE_API_KEY } from "@/lib/odoo/config";
 import { callJson2 } from "@/lib/odoo/json2";
+import { resolveXmlId } from "@/lib/odoo/ids";
 
 /**
  * Customer accounts, held in Odoo as ordinary portal users.
  *
  * Odoo owns the identity. A customer here is a res.users in the Portal
- * group (base.group_portal, id 10) attached to the res.partner their orders
- * already point at — the same partner the checkout creates. So signing up
- * does not make a second copy of anyone: it gives the contact that already
- * exists a way to log in, and their history is there the moment they do.
+ * group, attached to the res.partner their orders already point at — the
+ * same partner the checkout creates. So signing up does not make a second
+ * copy of anyone: it gives the contact that already exists a way to log
+ * in, and their history is there the moment they do.
+ *
+ * The Portal group is base.group_portal, resolved by its external id (see
+ * lib/odoo/ids.ts) rather than hardcoded — that id is specific to a
+ * database, and this site's backend is not always the same one.
  *
  * Odoo also owns the password. This code never sees a stored password and
  * never stores a hash: sign-up hands the chosen password to Odoo, and
@@ -29,7 +34,6 @@ import { callJson2 } from "@/lib/odoo/json2";
  * sign-in page says so rather than offering a link that would go nowhere.
  */
 
-const PORTAL_GROUP_ID = 10; // base.group_portal, confirmed on this instance
 
 export type Account = {
   uid: number;
@@ -129,12 +133,15 @@ export async function signUp(
     throw new AuthError("There's already an account with that email — sign in instead.");
   }
 
-  const partners = await callJson2<Array<{ id: number; name: string }>>(
-    "res.partner",
-    "search_read",
-    { domain: [["email", "=ilike", login]], fields: ["id", "name"], limit: 1 },
-    ODOO_WRITE_API_KEY
-  );
+  const [partners, portalGroupId] = await Promise.all([
+    callJson2<Array<{ id: number; name: string }>>(
+      "res.partner",
+      "search_read",
+      { domain: [["email", "=ilike", login]], fields: ["id", "name"], limit: 1 },
+      ODOO_WRITE_API_KEY
+    ),
+    resolveXmlId("base", "group_portal", ODOO_WRITE_API_KEY),
+  ]);
 
   const vals: Record<string, unknown> = {
     name: name.trim(),
@@ -142,7 +149,7 @@ export async function signUp(
     email: login,
     // Odoo 19 renamed this from groups_id; portal is what keeps the account
     // a customer rather than a staff seat.
-    group_ids: [[6, 0, [PORTAL_GROUP_ID]]],
+    group_ids: [[6, 0, [portalGroupId]]],
   };
   if (partners.length) vals.partner_id = partners[0].id;
 
