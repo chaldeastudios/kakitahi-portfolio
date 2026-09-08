@@ -7,10 +7,18 @@ import { submitBooking, refreshSlots, type BookingActionResult } from "@/app/con
 import type { Slot } from "@/lib/contact/booking";
 
 /**
- * ContactFlow — books straight onto Isaiah's calendar: pick a time, say
- * who you are, done. No external scheduling tool in between — submitting
- * creates a real crm.lead and calendar.event in Odoo (see
+ * ContactFlow — books straight onto Isaiah's calendar: pick a date, pick a
+ * time, say who you are, done. No external scheduling tool in between —
+ * submitting creates a real crm.lead and calendar.event in Odoo (see
  * lib/contact/booking.ts and app/contact/actions.ts).
+ *
+ * Step 01 is a calendar (pick a date) beside that date's own time list —
+ * one date's times, not every open day's times poured into one long
+ * scroll. A date with nothing open — a weekend, or a day Isaiah has
+ * blocked by putting a busy calendar.event across business hours in Odoo
+ * — just isn't clickable; there is no separate "blocked day" concept to
+ * manage here, since a full day with no free slot already renders that
+ * way on its own.
  *
  * Same three-step grammar as CheckoutFlow (step markers, a sticky left
  * panel, black/yellow panels on the right) so this reads as part of the
@@ -20,13 +28,14 @@ import type { Slot } from "@/lib/contact/booking";
  * screen, not something to scroll a full page for. Each side scrolls
  * internally if its content ever needs more room than the viewport gives.
  *
- * Times are shown in whatever timezone the visitor's own browser reports
- * (Intl.DateTimeFormat / toLocaleString) rather than Isaiah's — the slot
- * list from the server is UTC ISO strings, timezone-neutral, and everyone
- * reads it in their own. That formatting only runs after mount: doing it
- * during the server render would format in whatever timezone the server
- * happens to run in (not the visitor's), and the mismatch between that and
- * the browser's own re-render is exactly what triggers a hydration error.
+ * Times (and the calendar's own "today") are read in whatever timezone
+ * the visitor's own browser reports (Intl.DateTimeFormat / toLocaleString)
+ * rather than Isaiah's — the slot list from the server is UTC ISO
+ * strings, timezone-neutral, and everyone reads it in their own. That
+ * formatting only runs after mount: doing it during the server render
+ * would format in whatever timezone the server happens to run in (not the
+ * visitor's), and the mismatch between that and the browser's own
+ * re-render is exactly what triggers a hydration error.
  */
 
 const EASE = [0.44, 0, 0.56, 1] as const;
@@ -36,6 +45,8 @@ const STEPS = [
   { n: "02.", label: "Your details" },
   { n: "03.", label: "Confirmed" },
 ] as const;
+
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type Details = { name: string; email: string; phone: string; company: string; message: string };
 
@@ -53,27 +64,31 @@ const inputClass =
   "t-body w-full border border-black bg-white px-4 py-3 text-black outline-none " +
   "transition-[box-shadow] duration-200 focus:shadow-[inset_0_-3px_0_0_var(--color-yellow)]";
 
-function groupByLocalDay(slots: Slot[]): Array<{ dayLabel: string; slots: Slot[] }> {
-  const order: string[] = [];
-  const groups = new Map<string, Slot[]>();
+/** Local calendar date ("Tue Sep 09 2026"-style) -> that day's slots, in
+ *  the order the server returned them (chronological, since candidateSlots
+ *  in lib/contact/booking.ts generates them in order). Map insertion order
+ *  is preserved, so the first/last key are the earliest/latest open date. */
+function groupSlotsByLocalDate(slots: Slot[]): Map<string, Slot[]> {
+  const map = new Map<string, Slot[]>();
   for (const slot of slots) {
     const key = new Date(slot.startIso).toDateString();
-    if (!groups.has(key)) {
-      groups.set(key, []);
-      order.push(key);
-    }
-    groups.get(key)!.push(slot);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(slot);
   }
-  return order.map((key) => ({
-    dayLabel: new Date(groups.get(key)![0].startIso).toLocaleDateString(undefined, {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }),
-    slots: groups.get(key)!,
-  }));
+  return map;
 }
 
+/** One calendar month as a 7-wide grid, null for the leading blank cells. */
+function monthGridCells(year: number, month: number): Array<Date | null> {
+  const first = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: Array<Date | null> = new Array(first.getDay()).fill(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+  return cells;
+}
+
+const dateKey = (d: Date) => d.toDateString();
+const sameMonth = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 const timeLabel = (iso: string) =>
   new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 
@@ -88,6 +103,8 @@ export default function ContactFlow({
   const [slots, setSlots] = useState(initialSlots);
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState<Slot | null>(null);
+  const [viewMonth, setViewMonth] = useState<Date | null>(null);
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [details, setDetails] = useState<Details>({
     name: account?.name ?? "",
     email: account?.email ?? "",
@@ -102,10 +119,30 @@ export default function ContactFlow({
 
   useEffect(() => setMounted(true), []);
 
-  const days = useMemo(() => groupByLocalDay(slots), [slots]);
+  const slotsByDate = useMemo(() => groupSlotsByLocalDate(slots), [slots]);
+  const availableDateKeys = useMemo(() => Array.from(slotsByDate.keys()), [slotsByDate]);
   const timezone = useMemo(
     () => (mounted ? Intl.DateTimeFormat().resolvedOptions().timeZone : ""),
     [mounted]
+  );
+
+  // Defaults to the earliest open date, once the client has resolved what
+  // "today" actually is — see the file header on why this waits for mount.
+  useEffect(() => {
+    if (!mounted || availableDateKeys.length === 0) return;
+    setSelectedDateKey((cur) => (cur && slotsByDate.has(cur) ? cur : availableDateKeys[0]));
+    setViewMonth((cur) => cur ?? new Date(availableDateKeys[0]));
+  }, [mounted, availableDateKeys, slotsByDate]);
+
+  const earliestDate = availableDateKeys.length ? new Date(availableDateKeys[0]) : null;
+  const latestDate = availableDateKeys.length
+    ? new Date(availableDateKeys[availableDateKeys.length - 1])
+    : null;
+  const canGoPrevMonth = Boolean(
+    viewMonth && earliestDate && !sameMonth(viewMonth, earliestDate) && viewMonth > earliestDate
+  );
+  const canGoNextMonth = Boolean(
+    viewMonth && latestDate && !sameMonth(viewMonth, latestDate) && viewMonth < latestDate
   );
 
   const set = <K extends keyof Details>(key: K, value: Details[K]) =>
@@ -152,6 +189,8 @@ export default function ContactFlow({
       setStep(2);
     });
   }
+
+  const selectedDaySlots = selectedDateKey ? (slotsByDate.get(selectedDateKey) ?? []) : [];
 
   return (
     <section
@@ -247,10 +286,10 @@ export default function ContactFlow({
 
                 {!mounted ? (
                   <p className="t-body text-lightblack">Loading available times…</p>
-                ) : days.length === 0 ? (
+                ) : availableDateKeys.length === 0 ? (
                   <div className="flex w-full flex-col items-start gap-3 border-l-[3px] border-yellow pl-3">
                     <p className="t-body max-w-[480px]">
-                      Nothing open in the next couple of weeks. Reach out on{" "}
+                      Nothing open in the next couple of months. Reach out on{" "}
                       <a
                         href="https://linkedin.com/in/kakitahi"
                         target="_blank"
@@ -267,12 +306,89 @@ export default function ContactFlow({
                     <p className="t-body-s text-lightblack">
                       Shown in your local time{timezone ? ` — ${timezone}` : ""}.
                     </p>
-                    <div className="flex w-full flex-col items-start gap-8">
-                      {days.map((day) => (
-                        <div key={day.dayLabel} className="flex w-full flex-col items-start gap-3">
-                          <span className="t-button">{day.dayLabel}</span>
-                          <div className="flex w-full flex-wrap items-center gap-3">
-                            {day.slots.map((slot) => (
+
+                    <div className="flex w-full flex-col items-start gap-10 tablet:flex-row">
+                      {/* Calendar */}
+                      <div className="flex w-full flex-col items-start gap-4 tablet:w-[320px] tablet:shrink-0">
+                        <div className="flex w-full items-center justify-between">
+                          <span className="t-h5">
+                            {viewMonth?.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              aria-label="Previous month"
+                              disabled={!canGoPrevMonth}
+                              onClick={() =>
+                                setViewMonth((m) => (m ? new Date(m.getFullYear(), m.getMonth() - 1, 1) : m))
+                              }
+                              className="flex h-8 w-8 items-center justify-center border border-black disabled:opacity-30"
+                            >
+                              ‹
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="Next month"
+                              disabled={!canGoNextMonth}
+                              onClick={() =>
+                                setViewMonth((m) => (m ? new Date(m.getFullYear(), m.getMonth() + 1, 1) : m))
+                              }
+                              className="flex h-8 w-8 items-center justify-center border border-black disabled:opacity-30"
+                            >
+                              ›
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid w-full grid-cols-7 gap-1">
+                          {WEEKDAY_LABELS.map((w) => (
+                            <span key={w} className="t-body-s py-1 text-center text-lightblack">
+                              {w}
+                            </span>
+                          ))}
+                          {viewMonth &&
+                            monthGridCells(viewMonth.getFullYear(), viewMonth.getMonth()).map((cell, i) => {
+                              if (!cell) return <span key={`blank-${i}`} aria-hidden="true" />;
+                              const key = dateKey(cell);
+                              const available = slotsByDate.has(key);
+                              const isSelected = key === selectedDateKey;
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  disabled={!available}
+                                  onClick={() => setSelectedDateKey(key)}
+                                  className={`t-body-s aspect-square w-full transition-colors duration-150 ${
+                                    isSelected
+                                      ? "bg-yellow text-black"
+                                      : available
+                                        ? "border border-black bg-white text-black hover:bg-yellow"
+                                        : "text-lightblack opacity-40"
+                                  }`}
+                                >
+                                  {cell.getDate()}
+                                </button>
+                              );
+                            })}
+                        </div>
+                      </div>
+
+                      {/* Times for the selected date */}
+                      <div className="flex w-full flex-1 flex-col items-start gap-3">
+                        <span className="t-button">
+                          {selectedDateKey
+                            ? new Date(selectedDateKey).toLocaleDateString(undefined, {
+                                weekday: "long",
+                                month: "long",
+                                day: "numeric",
+                              })
+                            : "Pick a date"}
+                        </span>
+                        {selectedDaySlots.length === 0 ? (
+                          <p className="t-body-s text-lightblack">Nothing open this day.</p>
+                        ) : (
+                          <div className="flex w-full flex-wrap items-start gap-3">
+                            {selectedDaySlots.map((slot) => (
                               <button
                                 key={slot.startIso}
                                 type="button"
@@ -283,8 +399,8 @@ export default function ContactFlow({
                               </button>
                             ))}
                           </div>
-                        </div>
-                      ))}
+                        )}
+                      </div>
                     </div>
                   </>
                 )}

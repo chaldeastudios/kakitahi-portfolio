@@ -229,7 +229,14 @@ export async function sendOrderConfirmationEmail(
           {
             subject: `Your order is confirmed — ${order.reference}`,
             email_to: order.partnerEmail,
-            body_html: html,
+            // The field mail.mail actually sends from is `body` (inherited
+            // from mail.message, an html field) — not `body_html`, which
+            // this model also has but which a live test confirmed stays
+            // unrendered: create() accepts it silently, but send() reads
+            // `body`, so a mail.mail written with only body_html set goes
+            // out empty. See the "Booking a call" / order-confirmation
+            // email note in README.md for how this was diagnosed.
+            body: html,
             model: "sale.order",
             res_id: order.orderId,
           },

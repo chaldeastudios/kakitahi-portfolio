@@ -266,6 +266,45 @@ async function checkOutgoingMail(): Promise<CheckResult> {
   }
 }
 
+/**
+ * The order-confirmation email (lib/checkout/receipt-email.ts) writes a
+ * mail.mail with the write key — a different model and a different ACL
+ * than sale.order/res.partner, which checkCheckout() above already proves
+ * that key can write. mail.mail is commonly restricted to internal users
+ * even when everything else is open, so a write key that places orders
+ * fine can still be refused here. check_access_rights asks Odoo's own ACL
+ * layer directly (raise_exception: false, so a "no" comes back as a
+ * result rather than an exception) and creates nothing — same "prove it
+ * without writing" approach checkCheckout() takes, extended to the one
+ * write this site makes outside the order itself.
+ */
+async function checkEmailPermission(): Promise<CheckResult> {
+  const name = "Write key can create outgoing mail (mail.mail, order-confirmation email)";
+  if (!isCheckoutConfigured) {
+    return { name, ok: false, skipped: true, detail: "Checkout/write key not configured" };
+  }
+  try {
+    const canCreate = await callJson2<boolean>(
+      "mail.mail",
+      "check_access_rights",
+      { operation: "create", raise_exception: false },
+      ODOO_WRITE_API_KEY
+    );
+    return canCreate
+      ? { name, ok: true, detail: "OK — write key can create mail.mail" }
+      : {
+          name,
+          ok: false,
+          detail:
+            "The write key cannot create mail.mail — this is why the order-confirmation " +
+            "email never sends, even though the order itself writes fine. Check this " +
+            "user's access rights on Discuss/Email in Odoo (Settings → Users).",
+        };
+  } catch (err) {
+    return { name, ok: false, detail: String(err) };
+  }
+}
+
 export async function runAllChecks(): Promise<CheckResult[]> {
   return Promise.all([
     checkServerReachable(),
@@ -276,5 +315,6 @@ export async function runAllChecks(): Promise<CheckResult[]> {
     checkCheckout(),
     checkAccounts(),
     checkOutgoingMail(),
+    checkEmailPermission(),
   ]);
 }
