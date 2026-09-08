@@ -450,6 +450,22 @@ and deliver the download) rather than to a silent free order.
 only, `CHECKOUT_DEV_STUB=1` makes the action mint a plausible order
 reference and skip Odoo. It is ignored in production builds.
 
+**The order-confirmation email.** The moment an order actually confirms —
+a free one confirming itself on the spot, a paid one confirming once
+Paystack verifies it — `notifyOrderConfirmed()` in
+`src/lib/checkout/orders.ts` sends one email, through Odoo's own outgoing
+mail (`mail.mail`, sent immediately rather than left for the mail queue's
+cron) rather than a separate email provider this deployment would need its
+own credentials for. `src/lib/checkout/receipt-email.ts` builds it: order
+lines and total, a direct download link for anything with a file attached
+in Odoo (opens in a new tab), and a link into `/account` — sign in, or
+create one with the same email — since everything on the order lives
+there regardless of whether this email ever arrives. Logged against the
+sale.order itself (`model`/`res_id`), so it shows in that order's own
+chatter in Odoo. Best-effort throughout: a failed send is logged
+(`console.warn`) and never fails the order, which Odoo has already
+confirmed by the time this runs.
+
 ### Booking a call
 
 `/contact` — reached from the header's Contact button and the homepage's

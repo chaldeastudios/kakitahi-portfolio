@@ -50,6 +50,17 @@ export const CHECKOUT_SECRET =
   process.env.CHECKOUT_SECRET ||
   (process.env.ODOO_WRITE_API_KEY ?? process.env.ODOO_API_KEY ?? "");
 
+/**
+ * This deployment's own public URL — not an Odoo credential either, but
+ * needed anywhere a link has to be absolute rather than relative, which a
+ * page render never does but an email always does (there is no "current
+ * page" to resolve a relative link against in an inbox). Defaults to the
+ * production domain so a deploy that forgets to set it still links
+ * correctly; set SITE_URL explicitly for a preview deployment that should
+ * link to itself instead.
+ */
+export const SITE_URL = (process.env.SITE_URL || "https://kakitahi.com").replace(/\/+$/, "");
+
 export const isOdooConfigured = Boolean(ODOO_URL && ODOO_DB && ODOO_API_KEY);
 
 /**

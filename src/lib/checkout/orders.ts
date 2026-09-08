@@ -1,6 +1,7 @@
 import "server-only";
 import { ODOO_WRITE_API_KEY, isCheckoutConfigured } from "@/lib/odoo/config";
 import { callJson2 } from "@/lib/odoo/json2";
+import { getProducts } from "@/lib/odoo/content";
 import {
   isPaystackConfigured,
   paystackReference,
@@ -8,6 +9,7 @@ import {
   verifyPaystackTransaction,
   PAYSTACK_PUBLIC_KEY,
 } from "./paystack";
+import { sendOrderConfirmationEmail } from "./receipt-email";
 
 /**
  * The Odoo side of the cart checkout.
@@ -191,20 +193,26 @@ export async function verifyPaystackPayment(reference: string, orderId: number):
         ODOO_WRITE_API_KEY
       );
     }
+    await notifyOrderConfirmed(orderId);
   } catch (err) {
     console.warn("[paystack] verify failed for order", orderId, err);
   }
 }
 
 export type ConfirmedOrder = {
+  orderId: number;
   reference: string;
   confirmed: boolean;
   amountTotal: number;
   /** amountTotal before tax. */
   amountUntaxed: number;
   currencyCode: string;
+  partnerName: string;
   partnerEmail: string;
-  lines: Array<{ productId: number; quantity: number }>;
+  /** Pre-tax — the lines sum to amountUntaxed, same as amountTotal breaks
+   *  down into amountUntaxed + tax. Showing a tax-inclusive line next to a
+   *  separate tax row would double the tax the moment someone adds them up. */
+  lines: Array<{ productId: number; quantity: number; lineSubtotal: number }>;
 };
 
 /** Re-reads an order after a payment attempt, to see what actually happened. */
@@ -229,35 +237,69 @@ export async function readOrderForConfirmation(orderId: number): Promise<Confirm
   );
   if (!order || !order.partner_id) return null;
 
-  const [partner] = await callJson2<Array<{ email: string | false }>>(
+  const [partner] = await callJson2<Array<{ name: string | false; email: string | false }>>(
     "res.partner",
     "read",
-    { ids: [order.partner_id[0]], fields: ["email"] },
+    { ids: [order.partner_id[0]], fields: ["name", "email"] },
     ODOO_WRITE_API_KEY
   );
 
-  const orderLines = await callJson2<Array<{ product_id: [number, string] | false; product_uom_qty: number }>>(
+  const orderLines = await callJson2<
+    Array<{ product_id: [number, string] | false; product_uom_qty: number; price_subtotal: number }>
+  >(
     "sale.order.line",
     "search_read",
     {
       domain: [["order_id", "=", orderId]],
-      fields: ["product_id", "product_uom_qty"],
+      fields: ["product_id", "product_uom_qty", "price_subtotal"],
       limit: 200,
     },
     ODOO_WRITE_API_KEY
   );
 
   return {
+    orderId,
     reference: order.name,
     confirmed: order.state === "sale" || order.state === "done",
     amountTotal: order.amount_total,
     amountUntaxed: order.amount_untaxed,
     currencyCode: Array.isArray(order.currency_id) ? order.currency_id[1] : "",
+    partnerName: partner?.name || "",
     partnerEmail: partner?.email || "",
     lines: orderLines
       .filter((l): l is typeof l & { product_id: [number, string] } => Array.isArray(l.product_id))
-      .map((l) => ({ productId: l.product_id[0], quantity: l.product_uom_qty })),
+      .map((l) => ({
+        productId: l.product_id[0],
+        quantity: l.product_uom_qty,
+        lineSubtotal: l.price_subtotal,
+      })),
   };
+}
+
+/**
+ * The one call site both confirmation paths share — a free order
+ * confirming itself in placeOrder() below, and a paid one confirming in
+ * verifyPaystackPayment() above — so the confirmation email is sent
+ * exactly once, from exactly one place, regardless of which path actually
+ * got there. Re-reads the order rather than trusting the caller's own
+ * copy of it, since it needs the full shape (lines, partner) that neither
+ * caller already has in hand.
+ *
+ * Best-effort: an email that fails to send is a real gap worth knowing
+ * about (hence the console.warn deep in sendOrderConfirmationEmail), but
+ * it is never a reason to fail an order that Odoo has already confirmed.
+ */
+async function notifyOrderConfirmed(orderId: number): Promise<void> {
+  try {
+    const [order, catalogue] = await Promise.all([
+      readOrderForConfirmation(orderId),
+      getProducts(),
+    ]);
+    if (!order || !order.confirmed) return;
+    await sendOrderConfirmationEmail(order, catalogue);
+  } catch (err) {
+    console.warn("[checkout] could not send confirmation email for order", orderId, err);
+  }
 }
 
 /** Find the contact for this email, or make one. */
@@ -412,6 +454,7 @@ export async function placeOrder(
         ODOO_WRITE_API_KEY
       );
     }
+    await notifyOrderConfirmed(orderId);
   }
 
   const [order] = await callJson2<
