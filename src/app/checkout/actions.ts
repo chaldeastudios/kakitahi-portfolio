@@ -48,6 +48,8 @@ export type OrderResult =
       /** Lines dropped because this customer already has them. */
       skipped: Array<{ title: string; reason: string }>;
       amountTotal: number;
+      /** amountTotal before tax — the difference is shown as tax. */
+      amountUntaxed: number;
       currency: string;
     }
   | {
@@ -186,6 +188,7 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
           orderId: 0,
           partnerId: 0,
           amountTotal: total,
+          amountUntaxed: total,
           confirmed: true,
           payment: null,
         }
@@ -220,6 +223,7 @@ export async function placeOrder(input: CartSubmission): Promise<OrderResult> {
         items,
         skipped,
         amountTotal: order.amountTotal,
+        amountUntaxed: order.amountUntaxed,
         currency,
       };
     }
@@ -305,6 +309,7 @@ export async function confirmPaystackPayment(
       items,
       skipped: [],
       amountTotal: order.amountTotal,
+      amountUntaxed: order.amountUntaxed,
       currency: order.currencyCode,
     };
   } catch (err) {

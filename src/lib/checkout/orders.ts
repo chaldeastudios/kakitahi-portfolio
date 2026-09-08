@@ -48,6 +48,8 @@ export type PlacedOrder = {
   partnerId: number;
   /** What Odoo priced it at, once its own pricelist had its say. */
   amountTotal: number;
+  /** amountTotal before tax — the difference is what the confirmation shows as tax. */
+  amountUntaxed: number;
   /** False when a payment is still needed. */
   confirmed: boolean;
   /**
@@ -201,6 +203,8 @@ export type ConfirmedOrder = {
   reference: string;
   confirmed: boolean;
   amountTotal: number;
+  /** amountTotal before tax. */
+  amountUntaxed: number;
   currencyCode: string;
   partnerEmail: string;
   lines: Array<{ productId: number; quantity: number }>;
@@ -213,13 +217,17 @@ export async function readOrderForConfirmation(orderId: number): Promise<Confirm
       name: string;
       state: string;
       amount_total: number;
+      amount_untaxed: number;
       currency_id: [number, string] | false;
       partner_id: [number, string] | false;
     }>
   >(
     "sale.order",
     "read",
-    { ids: [orderId], fields: ["name", "state", "amount_total", "currency_id", "partner_id"] },
+    {
+      ids: [orderId],
+      fields: ["name", "state", "amount_total", "amount_untaxed", "currency_id", "partner_id"],
+    },
     ODOO_WRITE_API_KEY
   );
   if (!order || !order.partner_id) return null;
@@ -246,6 +254,7 @@ export async function readOrderForConfirmation(orderId: number): Promise<Confirm
     reference: order.name,
     confirmed: order.state === "sale" || order.state === "done",
     amountTotal: order.amount_total,
+    amountUntaxed: order.amount_untaxed,
     currencyCode: Array.isArray(order.currency_id) ? order.currency_id[1] : "",
     partnerEmail: partner?.email || "",
     lines: orderLines
@@ -408,10 +417,12 @@ export async function placeOrder(
     }
   }
 
-  const [order] = await callJson2<Array<{ id: number; name: string; amount_total: number }>>(
+  const [order] = await callJson2<
+    Array<{ id: number; name: string; amount_total: number; amount_untaxed: number }>
+  >(
     "sale.order",
     "read",
-    { ids: [orderId], fields: ["id", "name", "amount_total"] },
+    { ids: [orderId], fields: ["id", "name", "amount_total", "amount_untaxed"] },
     ODOO_WRITE_API_KEY
   );
 
@@ -422,6 +433,7 @@ export async function placeOrder(
     orderId,
     partnerId,
     amountTotal,
+    amountUntaxed: order?.amount_untaxed ?? amountTotal,
     confirmed: confirm,
     payment:
       confirm || amountTotal <= 0

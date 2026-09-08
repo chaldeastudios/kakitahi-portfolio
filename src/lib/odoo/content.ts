@@ -372,6 +372,32 @@ function formatPrice(value: number, currency: string): string {
   return currency ? `${currency} ${amount}` : amount;
 }
 
+type TaxRow = { id: number; amount: number; amount_type: string; price_include: boolean };
+
+/**
+ * A product's list_price is what checkout charges before tax — Paystack
+ * charges Odoo's amount_total, which is list_price plus whatever
+ * product.template.taxes_id adds. Showing list_price alone anywhere a
+ * customer can see it is exactly how a price quietly grows between the
+ * product page and the payment modal, so every display price folds this
+ * in instead.
+ *
+ * Only percentage taxes not already included in list_price are summed —
+ * the one case this store actually has (Kenya's 16% VAT). A fixed-amount
+ * tax, a tax group, or one already included in the price is left out of
+ * the number rather than risk stating a wrong one.
+ */
+function taxBreakdown(taxIds: number[], taxes: TaxRow[]): { rate: number; label: string } {
+  const applicable = taxIds
+    .map((id) => taxes.find((t) => t.id === id))
+    .filter(
+      (t): t is TaxRow => Boolean(t) && t!.amount_type === "percent" && !t!.price_include
+    );
+
+  const rate = applicable.reduce((sum, t) => sum + t.amount, 0);
+  return { rate, label: rate > 0 ? `${rate}% tax` : "" };
+}
+
 function mediaUrl(model: string, id: number, field = "image_1920"): string {
   return `/api/odoo/media?model=${encodeURIComponent(model)}&id=${id}&field=${field}`;
 }
@@ -390,11 +416,12 @@ export const getProducts = cache(async (): Promise<Product[]> => {
   const parsed = await getProductsByCategory("getProducts", PRODUCTS_CATEGORY_ID);
   const templateIds = parsed.map((p) => p.id);
 
-  // Three things live outside the description field and have to be asked
+  // Four things live outside the description field and have to be asked
   // for separately: the sellable variant (an order line takes a
-  // product.product, not a template), the eCommerce Media gallery, and any
-  // file attached to the product — the thing a buyer is handed.
-  const [variants, media, attachments] = await Promise.all([
+  // product.product, not a template), the eCommerce Media gallery, any
+  // file attached to the product — the thing a buyer is handed — and
+  // which taxes apply, since list_price alone is not what checkout charges.
+  const [variants, media, attachments, taxLinks] = await Promise.all([
     callJson2<Array<{ id: number; product_tmpl_id: [number, string]; sale_ok: boolean }>>(
       "product.product",
       "search_read",
@@ -430,12 +457,31 @@ export const getProducts = cache(async (): Promise<Product[]> => {
       },
       ODOO_API_KEY
     ),
+    callJson2<Array<{ id: number; taxes_id: number[] }>>(
+      "product.template",
+      "search_read",
+      { domain: [["id", "in", templateIds]], fields: ["id", "taxes_id"] },
+      ODOO_API_KEY
+    ),
   ]);
+
+  const allTaxIds = Array.from(new Set(taxLinks.flatMap((t) => t.taxes_id)));
+  const taxes = allTaxIds.length
+    ? await callJson2<TaxRow[]>(
+        "account.tax",
+        "read",
+        { ids: allTaxIds, fields: ["id", "amount", "amount_type", "price_include"] },
+        ODOO_API_KEY
+      )
+    : [];
 
   const products = parsed.map((p) => {
     const variant = variants.find((v) => v.product_tmpl_id?.[0] === p.id);
     const gallery = media.filter((m) => m.product_tmpl_id?.[0] === p.id);
     const file = attachments.find((a) => a.res_id === p.id);
+    const taxIds = taxLinks.find((t) => t.id === p.id)?.taxes_id ?? [];
+    const { rate: taxRate, label: taxLabel } = taxBreakdown(taxIds, taxes);
+    const priceInclTax = Math.round(p.priceValue * (1 + taxRate / 100) * 100) / 100;
 
     return {
       slug: slugify(p.title),
@@ -457,7 +503,12 @@ export const getProducts = cache(async (): Promise<Product[]> => {
       link: p.link,
       priceValue: p.priceValue,
       currency: p.currency,
-      priceLabel: formatPrice(p.priceValue, p.currency),
+      // Tax-inclusive: the number Paystack actually charges, so it's the
+      // one shown wherever a customer reads a price.
+      priceLabel: formatPrice(priceInclTax, p.currency),
+      priceInclTax,
+      taxRate,
+      taxLabel,
       // Odoo's own "Can be Sold" decides whether a product can be ordered
       // here at all — untick it there and the product still has a page and
       // a marketplace link, but no Add to Cart.

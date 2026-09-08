@@ -124,7 +124,16 @@ export default async function ProductPage({
                 </MetaRow>
               )}
               <MetaRow label="Price">
-                <span className="t-body">{product.priceLabel}</span>
+                <span className="flex flex-col items-end gap-1">
+                  <span className="t-body">{product.priceLabel}</span>
+                  {/* The price above already includes this — spelled out so
+                      it never reads as a number pulled from nowhere. */}
+                  {product.taxRate > 0 && (
+                    <span className="t-body-s text-lightgrey">
+                      incl. {product.taxLabel}
+                    </span>
+                  )}
+                </span>
               </MetaRow>
             </div>
 

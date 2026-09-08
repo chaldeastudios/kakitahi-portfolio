@@ -154,7 +154,12 @@ export default function CheckoutFlow({
     .filter((x): x is { product: Product; quantity: number } => x !== null);
 
   const itemCount = cart.reduce((n, c) => n + c.quantity, 0);
-  const total = cart.reduce((sum, c) => sum + c.product.priceValue * c.quantity, 0);
+  // Tax-inclusive throughout — this is what Paystack actually charges, and
+  // showing anything less anywhere in the flow is exactly how a price
+  // quietly grows between here and the payment modal.
+  const subtotal = cart.reduce((sum, c) => sum + c.product.priceValue * c.quantity, 0);
+  const total = cart.reduce((sum, c) => sum + c.product.priceInclTax * c.quantity, 0);
+  const taxTotal = total - subtotal;
   const currency = cart.find((c) => c.product.currency)?.product.currency ?? "";
   const totalLabel = total === 0 ? "Free" : `${currency} ${total.toLocaleString("en-GB")}`;
 
@@ -438,6 +443,20 @@ export default function CheckoutFlow({
                     label="Product updates"
                     value={details.marketingOptIn ? "Yes, email me" : "No thanks"}
                   />
+                  {/* Broken out whenever there's tax to break out, so the
+                      number Paystack asks for next is never a surprise. */}
+                  {taxTotal > 0 && (
+                    <>
+                      <SummaryRow
+                        label="Subtotal"
+                        value={`${currency} ${subtotal.toLocaleString("en-GB")}`}
+                      />
+                      <SummaryRow
+                        label="Tax"
+                        value={`${currency} ${taxTotal.toLocaleString("en-GB")}`}
+                      />
+                    </>
+                  )}
                   <div className="flex w-full items-baseline justify-between gap-6 pt-2">
                     <span className="t-h5">Total</span>
                     <span className="t-h5">{totalLabel}</span>
@@ -500,6 +519,14 @@ export default function CheckoutFlow({
                         </strong>{" "}
                         is on file against {result.email}. Your files are below; you don&apos;t
                         have to wait for an email to get them.
+                        {result.amountTotal > result.amountUntaxed && (
+                          <>
+                            {" "}
+                            That&apos;s {result.currency} {result.amountUntaxed.toLocaleString("en-GB")}{" "}
+                            plus {result.currency}{" "}
+                            {(result.amountTotal - result.amountUntaxed).toLocaleString("en-GB")} tax.
+                          </>
+                        )}
                       </>
                     ) : (
                       <>

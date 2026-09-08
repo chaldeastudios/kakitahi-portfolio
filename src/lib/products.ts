@@ -51,14 +51,29 @@ export type Product = {
   /** Where it lives: "Framer Marketplace". */
   platform: string;
   /**
-   * The price as Odoo holds it. `priceValue` is the number the checkout
-   * decides on; `priceLabel` is the same thing as a customer reads it.
-   * Both come from product.template.list_price on every request — change
-   * the price in Odoo and the next page view charges it.
+   * The base price, as Odoo's own list_price holds it — before tax. This is
+   * what admin editing writes back to Odoo, so it stays the untaxed number
+   * even where the rest of the site shows the taxed one.
    */
   priceValue: number;
   currency: string;
+  /**
+   * What a customer actually reads and actually pays — priceValue plus
+   * taxRate, formatted. Never show priceValue alone where a customer can
+   * see it: Paystack charges the taxed total, so anything less is a price
+   * that changes partway through checkout.
+   */
   priceLabel: string;
+  /** The taxed number behind priceLabel — what the cart and checkout total. */
+  priceInclTax: number;
+  /**
+   * The combined rate of every tax on this product that isn't already
+   * folded into list_price (product.template.taxes_id, percentage taxes
+   * only — see taxBreakdown() in lib/odoo/content.ts). 0 if none.
+   */
+  taxRate: number;
+  /** e.g. "16% tax". Empty string if taxRate is 0. */
+  taxLabel: string;
   license: string;
   published: string;
   updated: string;
@@ -96,6 +111,9 @@ export const PRODUCTS: Product[] = [
     priceValue: 0,
     currency: "KES",
     priceLabel: "Free",
+    priceInclTax: 0,
+    taxRate: 0,
+    taxLabel: "",
     license: "Limited",
     published: "Aug 14, 2026",
     updated: "Aug 14, 2026",
@@ -164,6 +182,9 @@ export const PRODUCTS: Product[] = [
     priceValue: 0,
     currency: "KES",
     priceLabel: "Free",
+    priceInclTax: 0,
+    taxRate: 0,
+    taxLabel: "",
     license: "Limited",
     published: "",
     updated: "Sep 1, 2026",

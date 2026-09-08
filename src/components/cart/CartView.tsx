@@ -31,7 +31,11 @@ export default function CartView({ products }: { products: Product[] }) {
     .filter((x): x is { product: Product; quantity: number } => x !== null);
 
   const itemCount = resolved.reduce((n, r) => n + r.quantity, 0);
-  const total = resolved.reduce((sum, r) => sum + r.product.priceValue * r.quantity, 0);
+  // Tax-inclusive — what checkout will actually charge, so this cart total
+  // and the payment modal that eventually opens never disagree.
+  const subtotal = resolved.reduce((sum, r) => sum + r.product.priceValue * r.quantity, 0);
+  const total = resolved.reduce((sum, r) => sum + r.product.priceInclTax * r.quantity, 0);
+  const taxTotal = total - subtotal;
   const currency = resolved.find((r) => r.product.currency)?.product.currency ?? "";
 
   if (!ready) {
@@ -135,6 +139,20 @@ export default function CartView({ products }: { products: Product[] }) {
             <span className="t-body">Items</span>
             <span className="t-body">{itemCount}</span>
           </div>
+          {/* Shown whenever there's tax to show, so nothing changes once
+              checkout opens the payment window. */}
+          {taxTotal > 0 && (
+            <>
+              <div className="flex w-full items-baseline justify-between gap-6 border-b border-border pb-[14px]">
+                <span className="t-body">Subtotal</span>
+                <span className="t-body">{`${currency} ${subtotal.toLocaleString("en-GB")}`}</span>
+              </div>
+              <div className="flex w-full items-baseline justify-between gap-6 border-b border-border pb-[14px]">
+                <span className="t-body">Tax</span>
+                <span className="t-body">{`${currency} ${taxTotal.toLocaleString("en-GB")}`}</span>
+              </div>
+            </>
+          )}
           <div className="flex w-full items-baseline justify-between gap-6 pt-2">
             <span className="t-h5">Total</span>
             <span className="t-h5">
