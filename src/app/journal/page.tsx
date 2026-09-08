@@ -20,7 +20,7 @@ import { JOURNAL } from "@/lib/journal";
 export const metadata: Metadata = {
   title: "Journal — Isaiah Kakitahi",
   description:
-    "Notes on design, finance, university and building Chaldea Studios — an honest record of the work as it happens, rather than a polished summary of it.",
+    "Notes on design, finance, university and the work itself — an honest record of it as it happens, rather than a polished summary.",
 };
 
 export default async function JournalPage() {

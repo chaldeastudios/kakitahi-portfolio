@@ -25,7 +25,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Isaiah Kakitahi — Design, Technology & Strategy",
   description:
-    "Designer and builder working with founders, small businesses and nonprofits. Websites, brand systems and AI-enabled tooling, through Chaldea Studios.",
+    "Designer and builder working with founders, small businesses and nonprofits. Websites, brand systems and AI-enabled tooling.",
 };
 
 export default function RootLayout({

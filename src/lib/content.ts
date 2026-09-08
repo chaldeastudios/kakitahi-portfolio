@@ -1,5 +1,5 @@
 /**
- * Site copy — Isaiah Kakitahi / Chaldea Studios.
+ * Site copy — Isaiah Kakitahi.
  *
  * Sourced from the chaldeastudios/kakitahi repo (src/data/content.js, the
  * Studio/Home/Contact pages), which was itself built from a crawl of
@@ -48,7 +48,7 @@ export const ABOUT = {
   tagline: "About Isaiah Kakitahi",
   paragraphs: [
     "I started the way most self-taught practice starts — learning by doing, breaking things, fixing them, getting curious about why some things felt right and others didn't. Over time that curiosity turned into a real craft.",
-    "I run Chaldea Studios alongside a finance and marketing double major at Strathmore University. That second half taught me structure, limits, and trade-offs — how systems behave under pressure, and how people actually decide. Both carry into the work.",
+    "I do this work independently, alongside a finance and marketing double major at Strathmore University. That second half taught me structure, limits, and trade-offs — how systems behave under pressure, and how people actually decide. Both carry into the work.",
     "Design isn't a big dramatic process for me. It's closer to paying attention: noticing when something feels cluttered, is trying too hard, or isn't saying quite enough. I'm most interested in work that doesn't shout — interfaces that move calmly, brands that don't overexplain themselves.",
   ],
 } as const;
@@ -223,12 +223,10 @@ export const FOOTER = {
     { label: "Nairobi, Kenya", href: "", newTab: false },
     { label: "Kampala, Uganda", href: "", newTab: false },
     { label: "Strathmore University", href: "", newTab: false },
-    { label: "Chaldea Studios", href: "", newTab: false },
     { label: "LinkedIn", href: "https://linkedin.com/in/kakitahi", newTab: true },
     { label: "X / Twitter", href: "https://x.com/kakitahiisaiah", newTab: true },
   ],
-  copyright:
-    "Copyright © 2026 Isaiah Kakitahi. All Rights Reserved. Built by Chaldea Studios.",
+  copyright: "Copyright © 2026 Isaiah Kakitahi. All Rights Reserved.",
   copyrightHref: "https://linkedin.com/in/kakitahi",
   legalLinks: [
     { label: "Privacy Policy", href: "/privacy-policy" },
