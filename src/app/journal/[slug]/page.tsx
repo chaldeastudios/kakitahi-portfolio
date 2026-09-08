@@ -85,7 +85,7 @@ export default async function JournalEntryPage({
           </div>
 
           {/* Meta */}
-          <div className="flex min-h-[340px] w-full flex-col items-start justify-between gap-20 overflow-hidden bg-black p-6 text-white">
+          <div className="flex min-h-[340px] w-full flex-col items-start justify-between gap-0 overflow-hidden bg-black p-6 text-white">
             <MetaRow label="Category" value={entry.category} />
             <MetaRow label="Date" value={entry.date} />
             <MetaRow label="Posted By" value={entry.postedBy} />

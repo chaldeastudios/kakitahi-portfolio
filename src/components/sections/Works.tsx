@@ -7,9 +7,15 @@ import type { Project } from "@/lib/projects";
 /**
  * Works — Framer node "Works" (lZbF1iErZ). 2-column grid, rows fit.
  *
- *  Heading (l0OzAzC5T)  minHeight 300px, bg /Light Grey,
- *                       border-top 1px /Border, padding 24px,
- *                       gridFillHeight false -> sticky "Works" (Heading 2)
+ *  Heading (l0OzAzC5T)  minHeight 300px, bg /Light Grey, padding 24px,
+ *                       sticky "Works" (Heading 2). The Framer spec calls
+ *                       this border-top only with gridFillHeight false, but
+ *                       transcribed as `self-start` that left the taller
+ *                       WorksDescription row exposing the page's pattern
+ *                       ground in the gap below it — this stretches to fill
+ *                       the row instead (which is what makes the sticky
+ *                       title have anywhere to stick within) and takes a
+ *                       full border so it reads as a card on every side.
  *  WorksDescription (CbyxEiG4l)  h 314px, nested 2-column grid
  *    Description (plxERtL8o) bg /White, border 1px /Border, padding 24px,
  *                            vertical space-between -> Body Normal + Button
@@ -25,7 +31,7 @@ export default function Works({ projects }: { projects: Project[] }) {
   return (
     <section id="works" className="grid w-full grid-cols-1 tablet:grid-cols-2">
       {/* Heading */}
-      <div className="flex min-h-[300px] flex-col items-start self-start overflow-hidden border-t border-border bg-lightgrey p-6">
+      <div className="flex min-h-[300px] flex-col items-start overflow-hidden border border-border bg-lightgrey p-6">
         <div className="flex w-full items-center justify-center tablet:sticky tablet:top-12">
           <Reveal className="z-[1] w-full" y={28} duration={0.8}>
             <h2 className="t-h2 w-full">{WORKS.heading}</h2>

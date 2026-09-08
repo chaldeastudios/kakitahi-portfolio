@@ -12,6 +12,11 @@
  * untouched.
  */
 
+/**
+ * No Contact entry here: the header already has a dedicated Contact
+ * button (see Header.tsx) — a text link to the same destination next to
+ * it would just be the same thing twice.
+ */
 export const NAV_LINKS = [
   { label: "About", href: "/#about", newTab: false },
   { label: "Services", href: "/#services", newTab: false },
@@ -19,7 +24,6 @@ export const NAV_LINKS = [
   { label: "Products", href: "/products", newTab: false },
   { label: "Journal", href: "/journal", newTab: false },
   { label: "Testimonial", href: "/#testimonials", newTab: false },
-  { label: "Contact", href: "/#contact", newTab: false },
 ] as const;
 
 export const HERO = {
@@ -126,7 +130,9 @@ export const CTA = {
   heading: "Let's create something real together.",
   description:
     "Not sure where to start? That's what the first call is for. Bring the brief and we'll figure out the rest.",
-  button: { label: "Schedule A Call", href: "https://linkedin.com/in/kakitahi", newTab: true },
+  // /contact books straight into Isaiah's own calendar (a lead and a
+  // calendar.event, created directly in Odoo) — see src/app/contact.
+  button: { label: "Schedule A Call", href: "/contact", newTab: false },
   image: "https://framerusercontent.com/images/z8oIkjRrZgpvPdmwICKinITmNw.jpg",
 } as const;
 

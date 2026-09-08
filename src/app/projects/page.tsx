@@ -35,7 +35,7 @@ export default async function ProjectsPage() {
         <PageHero title="Projects" />
         <ProjectGrid projects={projects} className="w-full" />
         <div className="w-full">
-          <Testimonials />
+          <Testimonials projects={projects} />
         </div>
         <div className="w-full">
           <Cta />

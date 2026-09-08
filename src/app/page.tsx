@@ -38,7 +38,7 @@ export default async function Home() {
       <Stats />
       <Works projects={projects} />
       <Services items={services} />
-      <Testimonials />
+      <Testimonials projects={projects} />
       <Cta />
     </PageTemplate>
   );

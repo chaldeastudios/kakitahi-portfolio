@@ -450,6 +450,30 @@ and deliver the download) rather than to a silent free order.
 only, `CHECKOUT_DEV_STUB=1` makes the action mint a plausible order
 reference and skip Odoo. It is ignored in production builds.
 
+### Booking a call
+
+`/contact` — reached from the header's Contact button and the homepage's
+own "Schedule A Call" panel, both of which used to be an external link —
+books straight onto Isaiah's Odoo calendar. No self-serve Appointments
+module is installed on this instance, so `src/lib/contact/booking.ts` is a
+small direct replacement built on the CRM and Calendar apps that are
+already there:
+
+1. Generates 30-minute slots for the next 10 weekdays, 9am–5pm
+   Africa/Nairobi (hardcoded — Kenya has no DST, so this doesn't need a
+   timezone library the way a second, DST-observing timezone would).
+2. Drops any slot that overlaps an existing `calendar.event`.
+3. On booking, re-checks that specific slot one more time (two people can
+   be looking at the same open slot at once), then creates a `crm.lead`
+   and a `calendar.event` tied to it via `opportunity_id` — a real lead in
+   the pipeline, with a real meeting on the calendar, both from one visit.
+
+The slot list is UTC ISO strings; `ContactFlow.tsx` formats it in whatever
+timezone the visitor's own browser reports, and only after mount — doing
+that during the server render would format in the server's timezone
+instead of the visitor's, and the mismatch between the two is exactly what
+triggers a hydration error.
+
 ## Framer transcription notes
 
 Reconstructed rather than read directly from Framer's MCP, since several

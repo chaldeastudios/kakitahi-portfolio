@@ -146,7 +146,7 @@ export default async function ProjectPage({
           </div>
 
           {/* Meta */}
-          <div className="flex min-h-[340px] w-full flex-col items-start justify-between gap-20 overflow-hidden bg-black p-6 text-white">
+          <div className="flex min-h-[340px] w-full flex-col items-start justify-between gap-0 overflow-hidden bg-black p-6 text-white">
             <MetaRow label="Client">
               <span className="t-body">{project.clientName}</span>
             </MetaRow>

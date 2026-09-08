@@ -369,7 +369,33 @@ async function getProductsByCategory(
   // services-list affordance the standalone products (ReplyFrame) don't
   // carry, and .ks-stat is optional throughout.
   assertParsed(label, parsed.length > 0 && parsed.every((s) => s.description.length > 0));
-  return parsed;
+
+  // Odoo's own record id is not a reliable display order — the same
+  // reason ids.ts resolves ids by name instead of trusting one database's
+  // numbering: a migration has no obligation to hand out ids in the order
+  // records were originally created, and search_read's "id asc" just
+  // happened to read as alphabetical order once this ran against a
+  // different Odoo instance. Each service already carries its own "01."
+  // style number in the description (.ks-number) — that's the order this
+  // list is actually meant to show, so sort by it. A record with no
+  // number (the standalone products, which don't carry .ks-number) keeps
+  // its place in whatever order search_read returned.
+  return parsed
+    .map((s, i) => ({ s, i, n: leadingNumber(s.number) }))
+    .sort((a, b) => {
+      if (a.n === null || b.n === null) {
+        if (a.n === null && b.n === null) return a.i - b.i;
+        return a.n === null ? 1 : -1;
+      }
+      return a.n - b.n;
+    })
+    .map(({ s }) => s);
+}
+
+/** "01." -> 1, "2" -> 2, "" or unparseable -> null. */
+function leadingNumber(label: string): number | null {
+  const match = /^(\d+)/.exec(label.trim());
+  return match ? Number(match[1]) : null;
 }
 
 /** The real service offerings, in their Odoo sequence. */

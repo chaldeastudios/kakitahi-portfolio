@@ -22,7 +22,8 @@ import { NAV_LINKS } from "@/lib/content";
  *   Left group  : Logo (colour rgb(0,0,0)) then the six Text-Links.
  *   Divider     : 1px wide, full height, /Border, centred, zIndex 2.
  *   Right group : Time (SimpleTimezoneClock America/New_York + "NYC")
- *                 then the Contact Button (minWidth 150px -> /#contact).
+ *                 then the Contact Button (minWidth 150px -> /contact,
+ *                 the booking flow — see src/app/contact).
  *   A "StopScroll" node (toggle false) locks page scroll — wired here to
  *   the open mobile menu.
  *
@@ -30,8 +31,9 @@ import { NAV_LINKS } from "@/lib/content";
  * the project but their children are not exposed by the MCP; the collapsed
  * nav below is reconstructed from those variants' frames.
  *
- * Two departures from the Framer header, both about fitting the nav in the
- * left half without crossing the centre divider:
+ * Three departures from the Framer header, all about fitting the nav in
+ * the left half without crossing the centre divider, or about not saying
+ * "Contact" twice:
  *
  *   - Archive is gone. It pointed at a page that never existed and 404'd,
  *     and dropping it is what makes room for Products and Journal, which
@@ -40,6 +42,9 @@ import { NAV_LINKS } from "@/lib/content";
  *     rather than the 1200px desktop breakpoint. Seven links plus the logo
  *     clear the divider at 1440 but not below it, so under that the
  *     collapsed menu, which lists every one of them, takes over.
+ *   - NAV_LINKS carries no Contact entry (see lib/content.ts): the button
+ *     to its right already goes there, so a text link to the same place
+ *     would just be it twice.
  *
  * The cart and the account link sit in the right-hand group at every
  * breakpoint, including the collapsed one: a cart you cannot see is a cart
@@ -104,7 +109,7 @@ export default function Header({
           <AccountButton name={account?.name} email={account?.email} />
           <CartButton />
           <div className="hidden h-full min-[1440px]:block">
-            <Button label="Contact" href="/#contact" className="h-full min-w-[150px]" />
+            <Button label="Contact" href="/contact" className="h-full min-w-[150px]" />
           </div>
           <div className="min-[1440px]:hidden">
             <MenuButton open={open} onClick={() => setOpen((v) => !v)} />
@@ -145,7 +150,7 @@ export default function Header({
                 <TimezoneClock timezone="America/New_York" textColor="rgb(0, 0, 0)" />
                 <span className="t-body-s">NYC</span>
               </div>
-              <Button label="Contact" href="/#contact" fullWidth />
+              <Button label="Contact" href="/contact" fullWidth />
             </div>
           </motion.div>
         )}
