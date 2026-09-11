@@ -134,6 +134,19 @@ Every record carries a predictable HTML structure that
 `.ks-number`, `.ks-stat` and `.ks-images` are optional; the description is
 not.
 
+**Uploading a `.ks-images` image through Odoo's own editor** (drag-and-drop
+into the rich-text field, rather than pasting an external URL) writes a
+`src` relative to Odoo itself — `/web/image/<id>-<hash>/name.webp?
+access_token=...` — which is correct on Odoo's own pages and broken here:
+this HTML renders on this site's own origin, so a relative `src` resolves
+against kakitahi.com instead of Odoo and 404s (a blank/gray card, not an
+error). `getCaseStudies()`/`getServices()` in `src/lib/odoo/content.ts`
+each run every parsed `.ks-images` `src` through `resolveOdooImageSrc()`,
+which prefixes `ODOO_URL` onto anything starting with `/` and leaves an
+already-absolute URL (Framer's placeholders, or any other external host)
+untouched — so both a pasted external URL and a drag-and-dropped Odoo one
+work from the same markup.
+
 **Why classes and not `data-*`.** Odoo sanitises every HTML field on write,
 and on this instance it silently strips `data-*` attributes from `<div>`
 and `<ul>`: a record written as `<div data-section="number">01.</div>` reads
