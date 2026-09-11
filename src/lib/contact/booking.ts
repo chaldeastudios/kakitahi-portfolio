@@ -27,7 +27,10 @@ const BUSINESS_TZ_OFFSET_HOURS = 3; // Africa/Nairobi, fixed UTC+3, no DST
 const BUSINESS_START_HOUR = 9;
 const BUSINESS_END_HOUR = 17;
 const SLOT_MINUTES = 30;
-const LOOKAHEAD_BUSINESS_DAYS = 10;
+// ~8 weeks — enough for a calendar with prev/next month navigation (see
+// ContactFlow.tsx) to actually have somewhere to go, rather than running
+// out after a week and a half.
+const LOOKAHEAD_BUSINESS_DAYS = 40;
 const MIN_LEAD_HOURS = 2; // no booking starting less than 2 hours from now
 
 export type Slot = {

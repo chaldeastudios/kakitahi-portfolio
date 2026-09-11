@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
-import { ODOO_API_KEY } from "./config";
+import { ODOO_API_KEY, ODOO_URL } from "./config";
 import { callJson2 } from "./json2";
 import { resolveIdByName } from "./ids";
 import type { Project, ProjectImage } from "@/lib/projects";
@@ -88,6 +88,20 @@ function paragraphs($section: cheerio.Cheerio<AnyNode>): string {
   return parts.join("\n\n");
 }
 
+/**
+ * A record edited through Odoo's own rich-text editor gets images inserted
+ * as a path relative to Odoo itself (`/web/image/<id>-<hash>/name.webp?
+ * access_token=...`) — correct when Odoo renders its own pages, broken here:
+ * this HTML is rendered on this site's own origin, so a relative `src`
+ * resolves against kakitahi.com/vercel.app instead and 404s. An `<img>`
+ * pasted in as a full external URL (the original Framer placeholders, or
+ * anything hosted elsewhere) is untouched — only a same-origin-relative
+ * Odoo path needs the domain prefixed back on.
+ */
+function resolveOdooImageSrc(src: string): string {
+  return src.startsWith("/") ? `${ODOO_URL}${src}` : src;
+}
+
 function slugify(name: string): string {
   return name
     .toLowerCase()
@@ -138,7 +152,8 @@ function parseCaseStudy(
   const images: ProjectImage[] = [];
   $(".ks-images img").each((_, img) => {
     const $img = $(img);
-    images.push({ src: $img.attr("src") ?? "", alt: $img.attr("alt") ?? "" });
+    const src = $img.attr("src") ?? "";
+    images.push({ src: src ? resolveOdooImageSrc(src) : "", alt: $img.attr("alt") ?? "" });
   });
 
   return {
@@ -260,7 +275,7 @@ function parseServiceDescription(html: string) {
   const images: string[] = [];
   $(".ks-images img").each((_, img) => {
     const src = $(img).attr("src");
-    if (src) images.push(src);
+    if (src) images.push(resolveOdooImageSrc(src));
   });
 
   const value = text($(".ks-stat .ks-stat-value").first());

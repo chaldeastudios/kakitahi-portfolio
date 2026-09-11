@@ -134,6 +134,19 @@ Every record carries a predictable HTML structure that
 `.ks-number`, `.ks-stat` and `.ks-images` are optional; the description is
 not.
 
+**Uploading a `.ks-images` image through Odoo's own editor** (drag-and-drop
+into the rich-text field, rather than pasting an external URL) writes a
+`src` relative to Odoo itself — `/web/image/<id>-<hash>/name.webp?
+access_token=...` — which is correct on Odoo's own pages and broken here:
+this HTML renders on this site's own origin, so a relative `src` resolves
+against kakitahi.com instead of Odoo and 404s (a blank/gray card, not an
+error). `getCaseStudies()`/`getServices()` in `src/lib/odoo/content.ts`
+each run every parsed `.ks-images` `src` through `resolveOdooImageSrc()`,
+which prefixes `ODOO_URL` onto anything starting with `/` and leaves an
+already-absolute URL (Framer's placeholders, or any other external host)
+untouched — so both a pasted external URL and a drag-and-dropped Odoo one
+work from the same markup.
+
 **Why classes and not `data-*`.** Odoo sanitises every HTML field on write,
 and on this instance it silently strips `data-*` attributes from `<div>`
 and `<ul>`: a record written as `<div data-section="number">01.</div>` reads
@@ -464,7 +477,27 @@ there regardless of whether this email ever arrives. Logged against the
 sale.order itself (`model`/`res_id`), so it shows in that order's own
 chatter in Odoo. Best-effort throughout: a failed send is logged
 (`console.warn`) and never fails the order, which Odoo has already
-confirmed by the time this runs.
+confirmed by the time this runs. The catalogue lookup used for item
+titles/download links is fetched separately from the order read, so a
+catalogue failure degrades the email rather than cancelling it.
+
+`mail.mail` delegation-inherits from `mail.message` and carries two
+similar-looking body fields: `body_html` (its own) and `body` (inherited).
+Odoo's `send()` renders from `body`, not `body_html` — a record created
+with only `body_html` set is accepted silently and then sent empty. This
+was the actual cause of confirmation emails never arriving; confirmed live
+against production Odoo and fixed by writing the email HTML to `body`.
+`/status` runs `check_access_rights("create")` against `mail.mail` for the
+write key as a standing diagnostic (`checkEmailPermission` in
+`src/lib/odoo/status.ts`), since that model's ACL is commonly stricter
+than `sale.order`/`res.partner`, which the checkout otherwise proves fine.
+
+Separately, and not fixable from this codebase: Odoo's own **built-in**
+order-confirmation email (triggered by `action_confirm()` via its default
+mail template, distinct from the custom email above) is currently failing
+at the SMTP layer against the configured Brevo relay ("timed out" / "111
+Connection refused") — worth checking in Odoo → Settings → Technical →
+Email → Emails for the exact error, and in Brevo's own SMTP settings.
 
 ### Booking a call
 
@@ -475,10 +508,13 @@ module is installed on this instance, so `src/lib/contact/booking.ts` is a
 small direct replacement built on the CRM and Calendar apps that are
 already there:
 
-1. Generates 30-minute slots for the next 10 weekdays, 9am–5pm
+1. Generates 30-minute slots for the next 40 weekdays (~8 weeks), 9am–5pm
    Africa/Nairobi (hardcoded — Kenya has no DST, so this doesn't need a
    timezone library the way a second, DST-observing timezone would).
-2. Drops any slot that overlaps an existing `calendar.event`.
+2. Drops any slot that overlaps an existing `calendar.event` — this is the
+   entire "blocked out days" mechanism: a day fully covered by an event
+   naturally ends up with zero slots and renders as a disabled calendar
+   cell, with no separate blocked-days feature needed.
 3. On booking, re-checks that specific slot one more time (two people can
    be looking at the same open slot at once), then creates a `crm.lead`
    and a `calendar.event` tied to it via `opportunity_id` — a real lead in
@@ -488,7 +524,10 @@ The slot list is UTC ISO strings; `ContactFlow.tsx` formats it in whatever
 timezone the visitor's own browser reports, and only after mount — doing
 that during the server render would format in the server's timezone
 instead of the visitor's, and the mismatch between the two is exactly what
-triggers a hydration error.
+triggers a hydration error. The picker itself is a Cal.com-style month
+calendar (prev/next navigation, disabled cells for days with no open
+slots) paired with a time list for whatever date is selected, rather than
+one long list of every open day's times.
 
 ## Framer transcription notes
 

@@ -244,28 +244,3 @@ body {
   cursor: none !important;
 }
 
-/* =========================================================================
-   Footer wordmark
-   The letterforms clip a field of /Yellow slashes drifting over /Black.
-   Bars sit on a fixed 90-unit pitch (see FooterWordmark.tsx) and the group
-   travels exactly one pitch, so each bar lands where its neighbour began
-   and the loop has no seam. One transform, composited.
-   ========================================================================= */
-.wordmark-sweep {
-  animation: wordmark-sweep 2.6s linear infinite;
-  will-change: transform;
-}
-
-@keyframes wordmark-sweep {
-  from { transform: translateX(0); }
-  to   { transform: translateX(90px); }
-}
-
-/* Quickens under the pointer, without touching anything else. */
-.wordmark-field:hover .wordmark-sweep {
-  animation-duration: 1s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .wordmark-sweep { animation: none; }
-}

@@ -2,6 +2,7 @@ import "server-only";
 import { ODOO_WRITE_API_KEY, isCheckoutConfigured } from "@/lib/odoo/config";
 import { callJson2 } from "@/lib/odoo/json2";
 import { getProducts } from "@/lib/odoo/content";
+import type { Product } from "@/lib/products";
 import {
   isPaystackConfigured,
   paystackReference,
@@ -288,18 +289,36 @@ export async function readOrderForConfirmation(orderId: number): Promise<Confirm
  * Best-effort: an email that fails to send is a real gap worth knowing
  * about (hence the console.warn deep in sendOrderConfirmationEmail), but
  * it is never a reason to fail an order that Odoo has already confirmed.
+ *
+ * The order read and the catalogue read are two separate try/catches, not
+ * one Promise.all: the catalogue is only used to add titles and download
+ * links to an email that's going out either way, so a catalogue fetch that
+ * fails on its own (Odoo Online's rate limit is a real, observed cause —
+ * see the README "Odoo integration" trade-off note) degrades to a plainer
+ * email instead of silently cancelling it outright.
  */
 async function notifyOrderConfirmed(orderId: number): Promise<void> {
+  let order: ConfirmedOrder | null;
   try {
-    const [order, catalogue] = await Promise.all([
-      readOrderForConfirmation(orderId),
-      getProducts(),
-    ]);
-    if (!order || !order.confirmed) return;
-    await sendOrderConfirmationEmail(order, catalogue);
+    order = await readOrderForConfirmation(orderId);
   } catch (err) {
-    console.warn("[checkout] could not send confirmation email for order", orderId, err);
+    console.warn("[checkout] could not read order for confirmation email", orderId, err);
+    return;
   }
+  if (!order || !order.confirmed) return;
+
+  let catalogue: Product[] = [];
+  try {
+    catalogue = await getProducts();
+  } catch (err) {
+    console.warn(
+      "[checkout] could not load the catalogue for the confirmation email — sending it without item titles/download links",
+      orderId,
+      err
+    );
+  }
+
+  await sendOrderConfirmationEmail(order, catalogue);
 }
 
 /** Find the contact for this email, or make one. */
