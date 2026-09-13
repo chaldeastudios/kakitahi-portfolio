@@ -89,58 +89,75 @@ type MessageRow = {
   date: string | false;
 };
 
-/** This partner's notifications, newest first — everything Odoo has ever
- *  recorded for them, not just what arrived after they signed up for the
- *  bell, so history shows up the first time someone signs in too. */
+/**
+ * This partner's notifications, newest first — but only ever our own,
+ * never Odoo's own system chatter (gamification badges, "you've
+ * installed N apps", onboarding tips, "Powered by Odoo" branding, and so
+ * on), which is everything else a signed-in staff/portal user's partner
+ * record accumulates over time in Odoo.
+ *
+ * notifyPartner() always posts as a plain comment directly on the
+ * partner's own res.partner record (model="res.partner", res_id=that
+ * partner) — nothing Odoo generates on its own lands there, so scoping
+ * to exactly that (model + res_id + message_type="comment") is what
+ * isolates "ours" without having to blocklist every kind of system
+ * message Odoo might ever send. History still shows up the first time
+ * someone signs in, not just what arrives after — this reads everything
+ * matching that shape, not just what's unread.
+ */
 export async function listNotifications(
   partnerId: number,
   limit = 30
 ): Promise<PartnerNotification[]> {
   if (!partnerId) return [];
 
-  const notifs = await callJson2<NotificationRow[]>(
-    "mail.notification",
+  const messages = await callJson2<MessageRow[]>(
+    "mail.message",
     "search_read",
     {
-      domain: [["res_partner_id", "=", partnerId]],
-      fields: ["is_read", "mail_message_id"],
+      domain: [
+        ["model", "=", "res.partner"],
+        ["res_id", "=", partnerId],
+        ["message_type", "=", "comment"],
+      ],
+      fields: ["subject", "body", "date"],
       order: "id desc",
       limit,
     },
     ODOO_WRITE_API_KEY
   );
-  if (notifs.length === 0) return [];
+  if (messages.length === 0) return [];
 
-  const messageIds = [
-    ...new Set(
-      notifs
-        .map((n) => (Array.isArray(n.mail_message_id) ? n.mail_message_id[0] : 0))
-        .filter(Boolean)
-    ),
-  ];
-
-  const messages = await callJson2<MessageRow[]>(
-    "mail.message",
+  const notifs = await callJson2<NotificationRow[]>(
+    "mail.notification",
     "search_read",
-    { domain: [["id", "in", messageIds]], fields: ["subject", "body", "date"] },
+    {
+      domain: [
+        ["res_partner_id", "=", partnerId],
+        ["mail_message_id", "in", messages.map((m) => m.id)],
+      ],
+      fields: ["is_read", "mail_message_id"],
+    },
     ODOO_WRITE_API_KEY
   );
-  const byId = new Map(messages.map((m) => [m.id, m]));
+  const notifByMessageId = new Map(
+    notifs.map((n) => [Array.isArray(n.mail_message_id) ? n.mail_message_id[0] : 0, n])
+  );
 
-  return notifs
-    .map((n): PartnerNotification | null => {
-      const msgId = Array.isArray(n.mail_message_id) ? n.mail_message_id[0] : 0;
-      const message = byId.get(msgId);
-      if (!message) return null;
-      return {
-        id: n.id,
-        subject: message.subject || "",
-        body: stripHtml(message.body || ""),
-        date: message.date || "",
-        isRead: n.is_read,
-      };
-    })
-    .filter((n): n is PartnerNotification => n !== null);
+  return messages.map((m): PartnerNotification => {
+    const notif = notifByMessageId.get(m.id);
+    return {
+      // Falls back to the message id on the rare notification-less
+      // message (e.g. the partner un-followed themselves) so the row
+      // still renders; markNotificationsRead() simply no-ops on an id
+      // that isn't a real mail.notification.
+      id: notif?.id ?? m.id,
+      subject: m.subject || "",
+      body: stripHtml(m.body || ""),
+      date: m.date || "",
+      isRead: notif?.is_read ?? true,
+    };
+  });
 }
 
 /** Marks one or more of this partner's own notifications read. Never

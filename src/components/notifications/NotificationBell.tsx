@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { BellIcon } from "@/components/ui/icons";
 import { getMyNotifications, markMyNotificationsRead } from "@/app/notifications/actions";
 import type { PartnerNotification } from "@/lib/notifications";
@@ -12,26 +13,32 @@ import type { PartnerNotification } from "@/lib/notifications";
  * someone can come back and read it.
  *
  * History shows up the first time someone opens it, not just what arrives
- * after: getMyNotifications() reads everything Odoo has ever recorded for
- * that partner (see lib/notifications.ts), so an order confirmed before
- * they had an account is still there once they sign up with the same
- * email and Odoo resolves them to the same contact.
+ * after: getMyNotifications() reads everything this site has ever posted
+ * for that partner (see lib/notifications.ts — deliberately scoped to
+ * exclude Odoo's own system chatter, badges and branding), so an order
+ * confirmed before they had an account is still there once they sign up
+ * with the same email and Odoo resolves them to the same contact.
  *
- * Opening the panel marks everything currently unread as read — the same
- * "opening it clears the badge" convention as most notification bells —
- * rather than requiring a separate dismiss action per item.
+ * Each row is one line — subject, a one-line preview, a relative date —
+ * not a full card, and links to /account (where the order/booking it's
+ * about actually lives) rather than sitting there inert. Opening the
+ * panel marks everything currently unread as read, the same "opening it
+ * clears the badge" convention as most notification bells.
  */
 function timeAgo(iso: string): string {
   if (!iso) return "";
   const ms = Date.now() - new Date(`${iso.replace(" ", "T")}Z`).getTime();
   const mins = Math.round(ms / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins}m`;
   const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours}h`;
   const days = Math.round(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(`${iso.replace(" ", "T")}Z`).toLocaleDateString();
+  if (days < 30) return `${days}d`;
+  return new Date(`${iso.replace(" ", "T")}Z`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export default function NotificationBell() {
@@ -74,8 +81,8 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute top-full right-0 z-30 mt-0 flex max-h-[420px] w-[340px] flex-col overflow-y-auto border border-border bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-border p-4">
+        <div className="absolute top-full right-0 z-30 flex max-h-[420px] w-[360px] flex-col overflow-y-auto border border-border bg-white shadow-lg">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <span className="t-button">Notifications</span>
           </div>
 
@@ -85,11 +92,26 @@ export default function NotificationBell() {
             <p className="t-body-s p-4 text-lightblack">Nothing yet.</p>
           ) : (
             items.map((n) => (
-              <div key={n.id} className="flex flex-col gap-1 border-b border-border p-4 last:border-b-0">
-                {n.subject && <span className="t-body">{n.subject}</span>}
-                {n.body && <span className="t-body-s text-lightblack">{n.body}</span>}
-                <span className="t-body-s text-lightblack">{timeAgo(n.date)}</span>
-              </div>
+              <Link
+                key={n.id}
+                href="/account"
+                onClick={() => setOpen(false)}
+                className="flex items-start gap-3 border-b border-border px-4 py-3 last:border-b-0 hover:bg-offwhite"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`mt-[7px] block h-[6px] w-[6px] shrink-0 rounded-full ${
+                    n.isRead ? "bg-transparent" : "bg-yellow"
+                  }`}
+                />
+                <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
+                  <span className="flex min-w-0 flex-col">
+                    <span className="t-body truncate">{n.subject}</span>
+                    <span className="t-body-s truncate text-lightblack">{n.body}</span>
+                  </span>
+                  <span className="t-body-s shrink-0 text-lightblack">{timeAgo(n.date)}</span>
+                </span>
+              </Link>
             ))
           )}
         </div>
