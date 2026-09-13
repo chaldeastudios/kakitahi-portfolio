@@ -21,7 +21,7 @@ import { NAV_LINKS } from "@/lib/content";
  *   stack horizontal / space-between / center.
  *   Left group  : Logo (colour rgb(0,0,0)) then the six Text-Links.
  *   Divider     : 1px wide, full height, /Border, centred, zIndex 2.
- *   Right group : Time (SimpleTimezoneClock America/New_York + "NYC")
+ *   Right group : Time (SimpleTimezoneClock Africa/Nairobi + "NBO")
  *                 then the Contact Button (minWidth 150px -> /contact,
  *                 the booking flow — see src/app/contact).
  *   A "StopScroll" node (toggle false) locks page scroll — wired here to
@@ -103,8 +103,8 @@ export default function Header({
         <div className="flex h-full items-center">
           <div className="mr-[60px] hidden items-center gap-1 tablet:flex">
             <ClockIcon color="rgb(0, 0, 0)" />
-            <TimezoneClock timezone="America/New_York" textColor="rgb(0, 0, 0)" />
-            <span className="t-body-s">NYC</span>
+            <TimezoneClock timezone="Africa/Nairobi" showSeconds textColor="rgb(0, 0, 0)" />
+            <span className="t-body-s">NBO</span>
           </div>
           <AccountButton name={account?.name} email={account?.email} />
           <CartButton />
@@ -147,8 +147,8 @@ export default function Header({
             <div className="mt-auto flex flex-col gap-4 p-6">
               <div className="flex items-center gap-1">
                 <ClockIcon color="rgb(0, 0, 0)" />
-                <TimezoneClock timezone="America/New_York" textColor="rgb(0, 0, 0)" />
-                <span className="t-body-s">NYC</span>
+                <TimezoneClock timezone="Africa/Nairobi" showSeconds textColor="rgb(0, 0, 0)" />
+                <span className="t-body-s">NBO</span>
               </div>
               <Button label="Contact" href="/contact" fullWidth />
             </div>

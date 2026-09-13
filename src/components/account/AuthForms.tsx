@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { signInAction, signUpAction, type AuthResult } from "@/app/account/actions";
+import { ArrowRight } from "@/components/ui/icons";
 
 /**
  * Sign in and create an account, on one page with two modes.
@@ -143,15 +144,18 @@ export default function AuthForms({ next }: { next?: string }) {
           <button
             type="submit"
             disabled={pending}
-            className="t-button bg-black px-6 py-4 text-white disabled:opacity-70"
+            className="flex items-center gap-[10px] bg-black px-6 py-4 text-white disabled:opacity-70"
           >
-            {pending
-              ? mode === "in"
-                ? "Signing in…"
-                : "Creating…"
-              : mode === "in"
-                ? "Sign in →"
-                : "Create account →"}
+            <span className="t-button">
+              {pending
+                ? mode === "in"
+                  ? "Signing in…"
+                  : "Creating…"
+                : mode === "in"
+                  ? "Sign in"
+                  : "Create account"}
+            </span>
+            {!pending && <ArrowRight color="rgb(255, 255, 255)" />}
           </button>
 
           {mode === "in" && (

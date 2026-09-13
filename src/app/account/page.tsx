@@ -8,6 +8,7 @@ import { getSession } from "@/lib/auth/session";
 import { getOrdersForPartnerSafe, type OrderView } from "@/lib/odoo/orders";
 import { createDownloadToken } from "@/lib/checkout/signing";
 import { getProjectsForPartner } from "@/lib/odoo/projects";
+import { ArrowRight } from "@/components/ui/icons";
 
 /**
  * /account — everything this customer has, in one place.
@@ -93,8 +94,12 @@ export default async function AccountPage() {
             </div>
             <div className="flex flex-col items-start gap-3">
               {session.isStaff && (
-                <Link href="/admin" className="t-button bg-yellow px-5 py-3 text-black">
-                  Open admin →
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-[10px] bg-yellow px-5 py-3 text-black"
+                >
+                  <span className="t-button">Open admin</span>
+                  <ArrowRight color="rgb(0, 0, 0)" />
                 </Link>
               )}
               <Link href="/products" className="t-button underline underline-offset-4">

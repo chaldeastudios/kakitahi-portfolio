@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useCart } from "@/lib/cart/CartProvider";
 import type { Product } from "@/lib/products";
+import { ArrowRight } from "@/components/ui/icons";
 
 /**
  * The cart's contents.
@@ -53,8 +54,12 @@ export default function CartView({ products }: { products: Product[] }) {
         <p className="t-body max-w-[520px]">
           Everything in the shop is free — a plugin and a template, with more to come.
         </p>
-        <Link href="/products" className="t-button bg-black px-6 py-4 text-white">
-          Browse products →
+        <Link
+          href="/products"
+          className="flex items-center gap-[10px] bg-black px-6 py-4 text-white"
+        >
+          <span className="t-button">Browse products</span>
+          <ArrowRight color="rgb(255, 255, 255)" />
         </Link>
       </div>
     );
@@ -164,8 +169,12 @@ export default function CartView({ products }: { products: Product[] }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          <Link href="/checkout" className="t-button bg-yellow px-6 py-4 text-black">
-            Checkout →
+          <Link
+            href="/checkout"
+            className="flex items-center gap-[10px] bg-yellow px-6 py-4 text-black"
+          >
+            <span className="t-button">Checkout</span>
+            <ArrowRight color="rgb(0, 0, 0)" />
           </Link>
           <Link href="/products" className="t-button underline underline-offset-4">
             Keep browsing

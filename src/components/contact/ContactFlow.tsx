@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { submitBooking, refreshSlots, type BookingActionResult } from "@/app/contact/actions";
 import type { Slot } from "@/lib/contact/booking";
+import { ArrowRight } from "@/components/ui/icons";
 
 /**
  * ContactFlow — books straight onto Isaiah's calendar: pick a date, pick a
@@ -498,9 +499,10 @@ export default function ContactFlow({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="t-button bg-yellow px-6 py-4 text-black disabled:opacity-70"
+                  className="flex items-center gap-[10px] bg-yellow px-6 py-4 text-black disabled:opacity-70"
                 >
-                  {pending ? "Booking…" : "Confirm booking →"}
+                  <span className="t-button">{pending ? "Booking…" : "Confirm booking"}</span>
+                  {!pending && <ArrowRight color="rgb(0, 0, 0)" />}
                 </button>
               </form>
             )}
@@ -527,8 +529,12 @@ export default function ContactFlow({
                   </p>
                 </div>
 
-                <Link href="/" className="t-button bg-black px-6 py-4 text-white">
-                  Back to homepage →
+                <Link
+                  href="/"
+                  className="flex items-center gap-[10px] bg-black px-6 py-4 text-white"
+                >
+                  <span className="t-button">Back to homepage</span>
+                  <ArrowRight color="rgb(255, 255, 255)" />
                 </Link>
               </div>
             )}

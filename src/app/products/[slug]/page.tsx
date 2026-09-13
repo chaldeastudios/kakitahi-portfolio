@@ -7,7 +7,7 @@ import PageHero from "@/components/sections/PageHero";
 import Cta from "@/components/sections/Cta";
 import AddToCart from "@/components/cart/AddToCart";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
-import { ArrowUpRight } from "@/components/ui/icons";
+import { ArrowRight, ArrowUpRight } from "@/components/ui/icons";
 import { getProducts } from "@/lib/odoo/content";
 import type { Product } from "@/lib/products";
 import { getSession } from "@/lib/auth/session";
@@ -247,8 +247,12 @@ export default async function ProductPage({
             )}
 
             {isOwned && product.oncePerCustomer ? (
-              <Link href="/account" className="t-button bg-black px-6 py-4 text-white">
-                You have this — open your account →
+              <Link
+                href="/account"
+                className="flex items-center gap-[10px] bg-black px-6 py-4 text-white"
+              >
+                <span className="t-button">You have this — open your account</span>
+                <ArrowRight color="rgb(255, 255, 255)" />
               </Link>
             ) : (
               <AddToCart

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight } from "@/components/ui/icons";
+import { ArrowRight, ArrowUpRight } from "@/components/ui/icons";
 import { placeOrder, confirmPaystackPayment, type OrderResult } from "@/app/checkout/actions";
 import { useCart } from "@/lib/cart/CartProvider";
 import type { Product } from "@/lib/products";
@@ -257,8 +257,12 @@ export default function CheckoutFlow({
         <p className="t-body max-w-[520px]">
           There is nothing in your cart yet.
         </p>
-        <Link href="/products" className="t-button bg-black px-6 py-4 text-white">
-          Browse products →
+        <Link
+          href="/products"
+          className="flex items-center gap-[10px] bg-black px-6 py-4 text-white"
+        >
+          <span className="t-button">Browse products</span>
+          <ArrowRight color="rgb(255, 255, 255)" />
         </Link>
       </section>
     );
@@ -420,8 +424,12 @@ export default function CheckoutFlow({
                   </p>
                 )}
 
-                <button type="submit" className="t-button bg-black px-6 py-4 text-white">
-                  Review order →
+                <button
+                  type="submit"
+                  className="flex items-center gap-[10px] bg-black px-6 py-4 text-white"
+                >
+                  <span className="t-button">Review order</span>
+                  <ArrowRight color="rgb(255, 255, 255)" />
                 </button>
               </form>
             )}
@@ -479,19 +487,22 @@ export default function CheckoutFlow({
                     type="button"
                     onClick={confirm}
                     disabled={pending || modalOpen}
-                    className="t-button bg-yellow px-6 py-4 text-black disabled:opacity-70"
+                    className="flex items-center gap-[10px] bg-yellow px-6 py-4 text-black disabled:opacity-70"
                   >
-                    {modalOpen
-                      ? "Waiting for payment…"
-                      : pending
-                        ? total === 0
-                          ? "Placing order…"
-                          : paystackPayment
-                            ? "Confirming payment…"
-                            : "Opening payment…"
-                        : total === 0
-                          ? "Place order →"
-                          : `Pay ${totalLabel} →`}
+                    <span className="t-button">
+                      {modalOpen
+                        ? "Waiting for payment…"
+                        : pending
+                          ? total === 0
+                            ? "Placing order…"
+                            : paystackPayment
+                              ? "Confirming payment…"
+                              : "Opening payment…"
+                          : total === 0
+                            ? "Place order"
+                            : `Pay ${totalLabel}`}
+                    </span>
+                    {!pending && !modalOpen && <ArrowRight color="rgb(0, 0, 0)" />}
                   </button>
                   <button
                     type="button"
