@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import PageTemplate from "@/components/layout/PageTemplate";
 import PageHero from "@/components/sections/PageHero";
 import ProductCard from "@/components/ui/ProductCard";
+import NewsletterCta from "@/components/sections/NewsletterCta";
 import Cta from "@/components/sections/Cta";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { getProducts } from "@/lib/odoo/content";
@@ -48,6 +49,10 @@ export default async function ProductsPage() {
             </RevealItem>
           ))}
         </RevealGroup>
+
+        <div className="w-full">
+          <NewsletterCta />
+        </div>
 
         <div className="w-full">
           <Cta />

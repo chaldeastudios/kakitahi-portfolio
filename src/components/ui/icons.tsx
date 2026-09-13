@@ -35,6 +35,33 @@ export function ArrowLeft({ color = "currentColor" }: { color?: string }) {
   );
 }
 
+/**
+ * BellIcon — hand-drawn to match this file's 1.5-stroke, 24x24-viewBox
+ * outline convention (iconic.app wasn't reachable from this environment
+ * to pull the exact glyph — swap this for the real one from there when
+ * convenient, per the request to source icons from there going forward).
+ */
+export function BellIcon({ color = "currentColor" }: { color?: string }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M13.73 21a2 2 0 0 1-3.46 0"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function ArrowRightLarge({ color = "currentColor" }: { color?: string }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">

@@ -10,6 +10,7 @@ import TimezoneClock from "@/components/ui/TimezoneClock";
 import { ClockIcon } from "@/components/ui/icons";
 import CartButton from "@/components/cart/CartButton";
 import AccountButton from "@/components/account/AccountButton";
+import NotificationBell from "@/components/notifications/NotificationBell";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { NAV_LINKS } from "@/lib/content";
 
@@ -106,6 +107,7 @@ export default function Header({
             <TimezoneClock timezone="Africa/Nairobi" showSeconds textColor="rgb(0, 0, 0)" />
             <span className="t-body-s">NBO</span>
           </div>
+          {account?.email && <NotificationBell />}
           <AccountButton name={account?.name} email={account?.email} />
           <CartButton />
           <div className="hidden h-full min-[1440px]:block">

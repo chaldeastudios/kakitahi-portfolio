@@ -1,0 +1,25 @@
+name: Booking reminders
+
+# Vercel's own Cron can't do this: this project is on the Hobby plan,
+# which only allows a once-a-day schedule, and a "20 minutes before the
+# call" reminder needs to be checked far more often than that. GitHub
+# Actions' scheduler has no such restriction, so it pings the site's own
+# cron route instead — same secret-bearer-token check either way.
+#
+# Requires two repo secrets (Settings -> Secrets and variables -> Actions):
+#   SITE_URL     e.g. https://kakitahi.com
+#   CRON_SECRET  must match the CRON_SECRET env var set on the Vercel project
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call booking-reminders route
+        run: |
+          curl -sS -f \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.SITE_URL }}/api/cron/booking-reminders"

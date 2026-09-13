@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import PageTemplate from "@/components/layout/PageTemplate";
 import PageHero from "@/components/sections/PageHero";
 import JournalCard from "@/components/ui/JournalCard";
+import NewsletterCta from "@/components/sections/NewsletterCta";
 import Cta from "@/components/sections/Cta";
 import { RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { getJournalPosts } from "@/lib/odoo/content";
@@ -52,6 +53,10 @@ export default async function JournalPage() {
             </RevealItem>
           ))}
         </RevealGroup>
+
+        <div className="w-full">
+          <NewsletterCta />
+        </div>
 
         <div className="w-full">
           <Cta />
