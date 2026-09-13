@@ -198,7 +198,7 @@ export default function ContactFlow({
   return (
     <section
       id="book-a-call"
-      className="grid w-full scroll-mt-12 grid-cols-1 border-t border-border tablet:grid-cols-2"
+      className="grid w-full scroll-mt-12 grid-cols-1 border-t border-border tablet:grid-cols-2 tablet:grid-rows-[minmax(90vh,auto)]"
     >
       {/* Left — where you are, sticky like CheckoutFlow's own left column */}
       <div className="z-[1] tablet:h-full">
@@ -256,11 +256,11 @@ export default function ContactFlow({
       </div>
 
       {/* Right — the active step */}
-      <div className="flex flex-col items-start">
+      <div className="flex flex-col items-start tablet:h-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
-            className="w-full"
+            className="w-full tablet:h-full"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -268,7 +268,7 @@ export default function ContactFlow({
           >
             {/* -------------------------------------------------- 01. time */}
             {step === 0 && (
-              <div className="flex min-h-[380px] w-full flex-col items-start gap-8 border-b border-border bg-offwhite p-6 desktop:p-10">
+              <div className="flex min-h-[380px] w-full flex-col items-start gap-8 border-b border-border bg-offwhite p-6 tablet:h-full desktop:p-10">
                 <div className="flex w-full flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-[6px]">
                     <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
@@ -423,7 +423,7 @@ export default function ContactFlow({
             {step === 1 && selected && (
               <form
                 onSubmit={toReview}
-                className="flex min-h-[380px] w-full flex-col items-start gap-8 border-b border-border bg-offwhite p-6 desktop:p-10"
+                className="flex min-h-[380px] w-full flex-col items-start gap-8 border-b border-border bg-offwhite p-6 tablet:h-full desktop:p-10"
               >
                 <div className="flex items-center gap-[6px]">
                   <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
@@ -507,7 +507,7 @@ export default function ContactFlow({
 
             {/* ----------------------------------------------- 03. done */}
             {step === 2 && confirmedIso && (
-              <div className="flex min-h-[380px] w-full flex-col items-start gap-8 border-b border-border bg-yellow p-6 desktop:p-10">
+              <div className="flex min-h-[380px] w-full flex-col items-start gap-8 border-b border-border bg-yellow p-6 tablet:h-full desktop:p-10">
                 <div className="flex items-center gap-[6px]">
                   <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-black" />
                   <h2 className="t-button">Confirmed</h2>
