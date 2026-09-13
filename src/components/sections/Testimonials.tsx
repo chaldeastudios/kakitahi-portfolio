@@ -4,7 +4,13 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { ArrowLeft, ArrowRightLarge, ArrowRight, QuoteIcon } from "@/components/ui/icons";
+import {
+  ArrowLeft,
+  ArrowRightLarge,
+  ArrowRight,
+  ChevronDown,
+  QuoteIcon,
+} from "@/components/ui/icons";
 import { Reveal } from "@/components/ui/Reveal";
 import { TESTIMONIALS } from "@/lib/content";
 import type { Project } from "@/lib/projects";
@@ -47,15 +53,24 @@ const EASE = [0.44, 0, 0.56, 1] as const;
 
 export default function Testimonials({ projects = [] }: { projects?: Project[] }) {
   const [[index, direction], setState] = useState<[number, number]>([0, 0]);
+  const [showProjects, setShowProjects] = useState(false);
   const items = projects
     .filter((p) => p.testimonial !== null)
     .map((p) => ({ ...p.testimonial!, project: p }));
   const count = items.length;
   const item = items[index];
   const project = item?.project;
+  // A client with more than one project (Saddiq Mwai: KariKari and Karitas
+  // Karisimbi Foundation) gets a "Read Projects" picker instead of a single
+  // link, since "Read full project" would only be able to point at one.
+  const personProjects = item
+    ? projects.filter((p) => p.testimonial?.name === item.name)
+    : [];
 
-  const go = (step: number) =>
+  const go = (step: number) => {
+    setShowProjects(false);
     setState(([i]) => [(i + step + count) % count, step]);
+  };
 
   if (count === 0) return null;
 
@@ -104,12 +119,12 @@ export default function Testimonials({ projects = [] }: { projects?: Project[] }
             exit={{ opacity: 0, x: direction >= 0 ? -24 : 24 }}
             transition={{ duration: 0.45, ease: EASE }}
           >
-            <div className="flex flex-col items-start gap-7">
+            <div className="flex min-h-0 flex-1 flex-col items-start gap-7 overflow-y-auto">
               <QuoteIcon color="rgb(0, 0, 0)" />
-              <blockquote className="t-h4 w-full">{item.quote}</blockquote>
+              <blockquote className="t-h4 w-full whitespace-pre-line">{item.quote}</blockquote>
             </div>
 
-            <figcaption className="flex flex-wrap items-end justify-between gap-6">
+            <figcaption className="relative flex shrink-0 flex-wrap items-end justify-between gap-6">
               <div className="flex items-start gap-4">
                 {item.avatarSrc ? (
                   <img
@@ -129,14 +144,55 @@ export default function Testimonials({ projects = [] }: { projects?: Project[] }
                 </span>
               </div>
 
-              {project && (
-                <Link
-                  href={`/projects/${project.slug}`}
-                  className="flex shrink-0 items-center gap-1"
-                >
-                  <span className="t-body">Read full project</span>
-                  <ArrowRight color="rgb(0, 0, 0)" />
-                </Link>
+              {personProjects.length > 1 ? (
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowProjects((v) => !v)}
+                    aria-expanded={showProjects}
+                    className="flex items-center gap-1"
+                  >
+                    <span className="t-body">Read Projects</span>
+                    <ChevronDown color="rgb(0, 0, 0)" />
+                  </button>
+
+                  {showProjects && (
+                    <div className="absolute bottom-full right-0 z-10 mb-2 flex w-[280px] flex-col border border-border bg-white shadow-lg">
+                      {personProjects.map((p) => (
+                        <Link
+                          key={p.slug}
+                          href={`/projects/${p.slug}`}
+                          onClick={() => setShowProjects(false)}
+                          className="flex items-start gap-3 border-b border-border p-3 last:border-b-0 hover:bg-offwhite"
+                        >
+                          {p.images[0] && (
+                            <img
+                              src={p.images[0].src}
+                              alt={p.images[0].alt || p.title}
+                              className="h-12 w-12 shrink-0 bg-lightgrey object-cover"
+                            />
+                          )}
+                          <span className="flex flex-col items-start gap-[2px]">
+                            <span className="t-body">{p.title}</span>
+                            <span className="t-body line-clamp-2 opacity-70">
+                              {p.shortOverview}
+                            </span>
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                project && (
+                  <Link
+                    href={`/projects/${project.slug}`}
+                    className="flex shrink-0 items-center gap-1"
+                  >
+                    <span className="t-body">Read full project</span>
+                    <ArrowRight color="rgb(0, 0, 0)" />
+                  </Link>
+                )
               )}
             </figcaption>
           </motion.div>

@@ -7,7 +7,7 @@ import PageHero from "@/components/sections/PageHero";
 import Cta from "@/components/sections/Cta";
 import ProjectVideos from "@/components/ui/ProjectVideos";
 import { Reveal } from "@/components/ui/Reveal";
-import { ArrowUpRight } from "@/components/ui/icons";
+import { ArrowUpRight, QuoteIcon } from "@/components/ui/icons";
 import { getCaseStudies } from "@/lib/odoo/content";
 
 /**
@@ -34,6 +34,8 @@ import { getCaseStudies } from "@/lib/odoo/content";
  *         Result   /Yellow    + /Light-Black marker, CMS/Body L (Black)
  *         each 1px right border /Border, minHeight 300, gap 40, padding 24
  *       Images 1-7 stacked full width, natural aspect ratio, no crop
+ *     Testimonial  the project's own .ks-testimonial, if it carries one:
+ *                  quote icon, quote, then avatar + name + role
  *     Next    (VCGQoePZm) /Off-white, padding 80px -> "Next Project: ..."
  *             (Body L), linking to the next entry
  *     Cta     (laNB0WumW) 100vh, the shared closing panel
@@ -225,6 +227,38 @@ export default async function ProjectPage({
             ))}
           </div>
         </section>
+
+        {/* Testimonial */}
+        {project.testimonial && (
+          <section className="flex w-full flex-col items-start gap-10 border-t border-border bg-white p-6 desktop:p-20">
+            <Reveal className="w-full">
+              <QuoteIcon color="rgb(0, 0, 0)" />
+            </Reveal>
+            <Reveal className="w-full">
+              <blockquote className="t-h4 w-full whitespace-pre-line">
+                {project.testimonial.quote}
+              </blockquote>
+            </Reveal>
+            <Reveal className="flex items-start gap-4">
+              {project.testimonial.avatarSrc ? (
+                <img
+                  src={project.testimonial.avatarSrc}
+                  alt={project.testimonial.name}
+                  className="h-[60px] w-[60px] shrink-0 rounded-full bg-lightgrey object-cover"
+                />
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className="block h-[60px] w-[60px] shrink-0 rounded-full bg-lightgrey"
+                />
+              )}
+              <span className="flex flex-col items-start">
+                <span className="t-body">{project.testimonial.name}</span>
+                <span className="t-body opacity-70">{project.testimonial.role}</span>
+              </span>
+            </Reveal>
+          </section>
+        )}
 
         {/* Next project */}
         <section className="flex w-full items-center justify-center gap-[10px] bg-offwhite p-20">
