@@ -27,16 +27,13 @@ import { getCaseStudies } from "@/lib/odoo/content";
  *                  300px) and Live Link -> "Visit Website" + an 18x19
  *                  white arrow-up-right, opening in a new tab
  *     Videos3 (GsBvva0lJ) the upload and the YouTube player
- *     Image1  (JUoa8cnzk) 100% x 600px
  *     Grid    (KD9JM_JuU) 3-column
  *       sticky 1-col/3-row stack (P4JF8r68R, top 48px):
  *         Problem  /Off-white + /Yellow marker, CMS/Body L (Black)
  *         Solution /Black     + /White  marker, CMS/Body L (White)
  *         Result   /Yellow    + /Light-Black marker, CMS/Body L (Black)
  *         each 1px right border /Border, minHeight 300, gap 40, padding 24
- *       Image23 (qA9PLvFtI) spans 2 columns -> Images 2, 3 and 4 stacked
- *     Grid    (Czd_bq7z8) 100% x 600px, 2-column -> Images 5 and 6
- *     Image7  (euKa_7X6H) 100% x 600px
+ *       Images 1-7 stacked full width, natural aspect ratio, no crop
  *     Next    (VCGQoePZm) /Off-white, padding 80px -> "Next Project: ..."
  *             (Body L), linking to the next entry
  *     Cta     (laNB0WumW) 100vh, the shared closing panel
@@ -182,16 +179,15 @@ export default async function ProjectPage({
         {/* Image 1 */}
         {img1 && (
           <Reveal className="w-full">
-            <div
-              role="img"
-              aria-label={img1.alt || `${project.title} — image 1`}
-              className="h-[600px] w-full bg-lightgrey bg-cover bg-center"
-              style={{ backgroundImage: `url("${img1.src}")` }}
+            <img
+              src={img1.src}
+              alt={img1.alt || `${project.title} — image 1`}
+              className="h-auto w-full bg-lightgrey"
             />
           </Reveal>
         )}
 
-        {/* Problem / Solution / Result beside images 2-4 */}
+        {/* Problem / Solution / Result beside the case study images */}
         <section className="grid w-full grid-cols-1 bg-white desktop:grid-cols-3">
           <div className="flex flex-col self-start desktop:sticky desktop:top-12">
             <StoryPanel
@@ -218,57 +214,17 @@ export default async function ProjectPage({
           </div>
 
           <div className="flex flex-col desktop:col-span-2">
-            {[img2, img3, img4].filter(Boolean).map((im, i) => (
+            {[img2, img3, img4, img5, img6, img7].filter(Boolean).map((im, i) => (
               <Reveal key={im.src} className="w-full" delay={i * 0.06}>
-                <div
-                  role="img"
-                  aria-label={im.alt || `${project.title} — image ${i + 2}`}
-                  className="aspect-[4/3] w-full bg-lightgrey bg-cover bg-center"
-                  style={{ backgroundImage: `url("${im.src}")` }}
+                <img
+                  src={im.src}
+                  alt={im.alt || `${project.title} — image ${i + 2}`}
+                  className="h-auto w-full bg-lightgrey"
                 />
               </Reveal>
             ))}
           </div>
         </section>
-
-        {/* Images 5 and 6 — Grid Czd_bq7z8: 100% x 600px, 2 columns.
-            Image5 (yIOgjOJrb) is 600px wide in its column; Image6
-            (w5MIcNODJ) is 715px and aligned to the end, so it bleeds
-            slightly past its column against the clipped parent. */}
-        <section className="grid w-full grid-cols-1 overflow-hidden desktop:h-[600px] desktop:grid-cols-2">
-          {img5 && (
-            <Reveal className="h-full w-full">
-              <div
-                role="img"
-                aria-label={img5.alt || `${project.title} — image 5`}
-                className="h-[320px] w-full max-w-full bg-lightgrey bg-cover bg-center desktop:h-[600px] desktop:w-[600px]"
-                style={{ backgroundImage: `url("${img5.src}")` }}
-              />
-            </Reveal>
-          )}
-          {img6 && (
-            <Reveal className="h-full w-full" delay={0.08}>
-              <div
-                role="img"
-                aria-label={img6.alt || `${project.title} — image 6`}
-                className="ml-auto h-[320px] w-full max-w-full bg-lightgrey bg-cover bg-center desktop:h-[600px] desktop:w-[715px]"
-                style={{ backgroundImage: `url("${img6.src}")` }}
-              />
-            </Reveal>
-          )}
-        </section>
-
-        {/* Image 7 */}
-        {img7 && (
-          <Reveal className="w-full">
-            <div
-              role="img"
-              aria-label={img7.alt || `${project.title} — image 7`}
-              className="h-[600px] w-full overflow-hidden bg-lightgrey bg-cover bg-center"
-              style={{ backgroundImage: `url("${img7.src}")` }}
-            />
-          </Reveal>
-        )}
 
         {/* Next project */}
         <section className="flex w-full items-center justify-center gap-[10px] bg-offwhite p-20">
