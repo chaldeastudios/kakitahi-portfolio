@@ -5,7 +5,7 @@ import type { AnyNode } from "domhandler";
 import { ODOO_API_KEY, ODOO_URL } from "./config";
 import { callJson2 } from "./json2";
 import { resolveIdByName } from "./ids";
-import type { Project, ProjectImage } from "@/lib/projects";
+import type { Project, ProjectImage, ProjectTestimonial } from "@/lib/projects";
 import type { JournalPost } from "@/lib/journal";
 import type { Product } from "@/lib/products";
 
@@ -48,6 +48,7 @@ import type { Product } from "@/lib/products";
  *   case study ul.ks-meta > li.ks-client|.ks-year|.ks-live-link|.ks-services
  *             .ks-overview · .ks-problem · .ks-solution · .ks-result
  *             .ks-testimonial > p… + footer>span.ks-name+span.ks-role
+ *                              + optional footer>img.ks-avatar[src]
  *             .ks-images>img[src][alt]
  *   journal   ul.ks-meta > li.ks-category|.ks-date|.ks-author
  *             .ks-intro · repeated .ks-body > h3 + p…
@@ -156,6 +157,8 @@ function parseCaseStudy(
     images.push({ src: src ? resolveOdooImageSrc(src) : "", alt: $img.attr("alt") ?? "" });
   });
 
+  const testimonial = parseTestimonial($);
+
   return {
     clientName,
     year,
@@ -166,7 +169,29 @@ function parseCaseStudy(
     solution,
     result,
     images,
+    testimonial,
   };
+}
+
+/**
+ * .ks-testimonial > p… + footer>span.ks-name+span.ks-role, plus an
+ * optional footer img.ks-avatar. The avatar is a headshot hosted by this
+ * site itself under /public/testimonials (not an Odoo asset), so — unlike
+ * .ks-images — its src is left untouched rather than run through
+ * resolveOdooImageSrc: a site-relative path here already resolves
+ * correctly against this site's own origin.
+ */
+function parseTestimonial($: cheerio.CheerioAPI): ProjectTestimonial | null {
+  const $testimonial = $(".ks-testimonial").first();
+  if ($testimonial.length === 0) return null;
+
+  const quote = paragraphs($testimonial);
+  const name = text($testimonial.find("footer .ks-name").first());
+  const role = text($testimonial.find("footer .ks-role").first());
+  const avatarSrc = $testimonial.find("footer img.ks-avatar").attr("src") ?? "";
+
+  if (!quote || !name) return null;
+  return { quote, name, role, avatarSrc };
 }
 
 /**

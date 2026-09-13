@@ -87,40 +87,14 @@ export const SERVICES = {
   cta: { label: "Book A Call", href: "/#contact", newTab: false },
 } as const;
 
+/**
+ * The actual quotes now live in each project's own `.ks-testimonial` block
+ * in Odoo (see parseTestimonial in src/lib/odoo/content.ts), read by
+ * src/components/sections/Testimonials.tsx via its `projects` prop — kept
+ * here is only the surrounding UI copy that isn't any one client's words.
+ */
 export const TESTIMONIALS = {
   tagline: "Testimonials",
-  items: [
-    {
-      quote:
-        "We have had the pleasure of working with Chaldea Studios across several projects, including our e-commerce site and multiple business websites. Their creativity, technical expertise, and willingness to listen and adapt were key to bringing our visions to life. Finding a partner who combines design excellence with genuine collaboration is rare.",
-      name: "Saddiq Mwai",
-      role: "KariKari",
-    },
-    {
-      quote:
-        "Collaborating with Chaldea Studios was a pure joy! They paid attention to our needs and transformed our concepts into a breathtaking actuality. Their ideas and originality in their designs sincerely distinguish them.",
-      name: "Sonia Kentaro",
-      role: "Founder, Veridian Tech Co.",
-    },
-    {
-      quote:
-        "Isaiah really understood what Southside Akwana Records is about. He took our vision and turned it into a brand that feels authentic, sharp, and confident.",
-      name: "Steven Clement",
-      role: "Southside Akwana Records",
-    },
-    {
-      quote:
-        "I really appreciate the way it feels very open-ended, letting different kinds of people explore as much as they feel curious, with a little something for everyone. It's honestly genius, I'm grateful for this collaboration.",
-      name: "John Muhumuza",
-      role: "Managing Director, Kaktus Limited",
-    },
-    {
-      quote:
-        "What truly stood out was their responsiveness and commitment to getting every detail just right — no request was ever too small, and every piece of feedback was welcomed with a positive attitude. They translated our ideas into beautifully designed, functional websites that perfectly reflect our brands.",
-      name: "Saddiq Mwai",
-      role: "Karitas Karisimbi Foundation",
-    },
-  ],
   outro: "I want your testimonial to be listed here. Let's work together :)",
   cta: { label: "Book A Call", href: "/#contact", newTab: false },
 } as const;

@@ -35,29 +35,29 @@ import type { Project } from "@/lib/projects";
  *         border-bottom 1px /Border, padding 24px, space-between:
  *         the outro line, then the "Book A Call" Button
  *
- * `projects` (the live case studies, from getCaseStudies() by way of
- * app/page.tsx) is what ties a testimonial to the project it's actually
- * about, so "Read full project" goes to a real case study rather than
- * being decorative quote text with nowhere to go. The match is by company
- * name: a project's title is always that name (the Odoo blog post titles
- * are literally "KariKari", "Kaktus Limited", and so on), which a
- * testimonial's own `role` field either is exactly or ends with ("Founder,
- * Veridian Tech Co."). `.ks-client` in the case study itself isn't used
- * for this — it holds a person's name on some records and a company name
- * on others, so it isn't a reliable key; the title always is.
+ * Each testimonial now comes straight from its project's own
+ * `.ks-testimonial` block in Odoo (see parseTestimonial in
+ * src/lib/odoo/content.ts) — quote, name, role and an optional avatar —
+ * rather than a separate hardcoded list, so a project and its testimonial
+ * can never drift out of sync (Saddiq Mwai's two client projects, KariKari
+ * and Karitas Karisimbi Foundation, each carry their own). "Read full
+ * project" links straight to the project the testimonial came from.
  */
 const EASE = [0.44, 0, 0.56, 1] as const;
 
 export default function Testimonials({ projects = [] }: { projects?: Project[] }) {
   const [[index, direction], setState] = useState<[number, number]>([0, 0]);
-  const count = TESTIMONIALS.items.length;
-  const item = TESTIMONIALS.items[index];
-  const project = projects.find(
-    (p) => item.role === p.title || item.role.endsWith(p.title)
-  );
+  const items = projects
+    .filter((p) => p.testimonial !== null)
+    .map((p) => ({ ...p.testimonial!, project: p }));
+  const count = items.length;
+  const item = items[index];
+  const project = item?.project;
 
   const go = (step: number) =>
     setState(([i]) => [(i + step + count) % count, step]);
+
+  if (count === 0) return null;
 
   return (
     <section
@@ -111,10 +111,18 @@ export default function Testimonials({ projects = [] }: { projects?: Project[] }
 
             <figcaption className="flex flex-wrap items-end justify-between gap-6">
               <div className="flex items-start gap-4">
-                <span
-                  aria-hidden="true"
-                  className="block h-[60px] w-[60px] shrink-0 bg-lightgrey bg-cover bg-center"
-                />
+                {item.avatarSrc ? (
+                  <img
+                    src={item.avatarSrc}
+                    alt={item.name}
+                    className="h-[60px] w-[60px] shrink-0 rounded-full bg-lightgrey object-cover"
+                  />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="block h-[60px] w-[60px] shrink-0 rounded-full bg-lightgrey"
+                  />
+                )}
                 <span className="flex flex-col items-start">
                   <span className="t-body">{item.name}</span>
                   <span className="t-body opacity-70">{item.role}</span>

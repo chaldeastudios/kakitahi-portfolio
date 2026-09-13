@@ -15,6 +15,14 @@ export type ProjectImage = {
   alt: string;
 };
 
+export type ProjectTestimonial = {
+  quote: string;
+  name: string;
+  role: string;
+  /** Site-relative path under /public (e.g. "/testimonials/saddiq.png"), not an Odoo asset. */
+  avatarSrc: string;
+};
+
 export type Project = {
   slug: string;
   title: string;
@@ -30,4 +38,5 @@ export type Project = {
   images: ProjectImage[];
   video: string | null;
   youtubeUrl: string | null;
+  testimonial: ProjectTestimonial | null;
 };
