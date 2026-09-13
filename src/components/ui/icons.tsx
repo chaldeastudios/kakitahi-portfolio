@@ -35,20 +35,6 @@ export function ArrowLeft({ color = "currentColor" }: { color?: string }) {
   );
 }
 
-export function ChevronDown({ color = "currentColor" }: { color?: string }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M6 9l6 6 6-6"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export function ArrowRightLarge({ color = "currentColor" }: { color?: string }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">

@@ -4,13 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import {
-  ArrowLeft,
-  ArrowRightLarge,
-  ArrowRight,
-  ChevronDown,
-  QuoteIcon,
-} from "@/components/ui/icons";
+import { ArrowLeft, ArrowRightLarge, ArrowRight, QuoteIcon } from "@/components/ui/icons";
 import { Reveal } from "@/components/ui/Reveal";
 import { TESTIMONIALS } from "@/lib/content";
 import type { Project } from "@/lib/projects";
@@ -45,32 +39,29 @@ import type { Project } from "@/lib/projects";
  * `.ks-testimonial` block in Odoo (see parseTestimonial in
  * src/lib/odoo/content.ts) — quote, name, role and an optional avatar —
  * rather than a separate hardcoded list, so a project and its testimonial
- * can never drift out of sync (Saddiq Mwai's two client projects, KariKari
- * and Karitas Karisimbi Foundation, each carry their own). "Read full
- * project" links straight to the project the testimonial came from.
+ * can never drift out of sync. "Read full project" links to the project
+ * the testimonial came from. Saddiq Mwai has two (KariKari and Karitas
+ * Karisimbi Foundation); only the first is shown here, so the same person
+ * doesn't appear twice in the carousel — its link goes to that one project.
  */
 const EASE = [0.44, 0, 0.56, 1] as const;
 
 export default function Testimonials({ projects = [] }: { projects?: Project[] }) {
   const [[index, direction], setState] = useState<[number, number]>([0, 0]);
-  const [showProjects, setShowProjects] = useState(false);
+  const seenNames = new Set<string>();
   const items = projects
     .filter((p) => p.testimonial !== null)
-    .map((p) => ({ ...p.testimonial!, project: p }));
+    .map((p) => ({ ...p.testimonial!, project: p }))
+    .filter((it) => {
+      if (seenNames.has(it.name)) return false;
+      seenNames.add(it.name);
+      return true;
+    });
   const count = items.length;
   const item = items[index];
   const project = item?.project;
-  // A client with more than one project (Saddiq Mwai: KariKari and Karitas
-  // Karisimbi Foundation) gets a "Read Projects" picker instead of a single
-  // link, since "Read full project" would only be able to point at one.
-  const personProjects = item
-    ? projects.filter((p) => p.testimonial?.name === item.name)
-    : [];
 
-  const go = (step: number) => {
-    setShowProjects(false);
-    setState(([i]) => [(i + step + count) % count, step]);
-  };
+  const go = (step: number) => setState(([i]) => [(i + step + count) % count, step]);
 
   if (count === 0) return null;
 
@@ -80,7 +71,7 @@ export default function Testimonials({ projects = [] }: { projects?: Project[] }
       className="grid w-full grid-cols-1 overflow-clip border-t border-border desktop:grid-cols-4"
     >
       {/* Left — label + arrows */}
-      <div className="flex flex-col justify-between bg-white desktop:h-[631px]">
+      <div className="flex flex-col justify-between bg-white desktop:min-h-[631px]">
         <div className="flex h-[65px] flex-col items-start overflow-hidden bg-white p-6">
           <Reveal className="flex items-center gap-[6px]" y={12}>
             <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
@@ -108,23 +99,26 @@ export default function Testimonials({ projects = [] }: { projects?: Project[] }
         </div>
       </div>
 
-      {/* Middle — the active testimonial */}
-      <div className="flex flex-col justify-between gap-16 overflow-hidden border-y border-border bg-white px-6 py-8 desktop:col-span-2 desktop:h-[631px] desktop:gap-[120px] desktop:border-x desktop:border-t-0">
+      {/* Middle — the active testimonial. No fixed height/overflow-hidden
+          here: a long quote (Saddiq Mwai's) needs to grow the row rather
+          than get clipped, so this and its Left/Right siblings use
+          min-height instead and stretch together to whichever is tallest. */}
+      <div className="flex flex-col justify-between gap-16 border-y border-border bg-white px-6 py-8 desktop:col-span-2 desktop:min-h-[631px] desktop:gap-[120px] desktop:border-x desktop:border-t-0">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={index}
-            className="flex h-full flex-col justify-between gap-16 desktop:gap-[120px]"
+            className="flex flex-col justify-between gap-16 desktop:gap-[120px]"
             initial={{ opacity: 0, x: direction >= 0 ? 24 : -24 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: direction >= 0 ? -24 : 24 }}
             transition={{ duration: 0.45, ease: EASE }}
           >
-            <div className="flex min-h-0 flex-1 flex-col items-start gap-7 overflow-y-auto">
+            <div className="flex flex-col items-start gap-7">
               <QuoteIcon color="rgb(0, 0, 0)" />
               <blockquote className="t-h4 w-full whitespace-pre-line">{item.quote}</blockquote>
             </div>
 
-            <figcaption className="relative flex shrink-0 flex-wrap items-end justify-between gap-6">
+            <figcaption className="flex flex-wrap items-end justify-between gap-6">
               <div className="flex items-start gap-4">
                 {item.avatarSrc ? (
                   <img
@@ -144,55 +138,14 @@ export default function Testimonials({ projects = [] }: { projects?: Project[] }
                 </span>
               </div>
 
-              {personProjects.length > 1 ? (
-                <div className="relative shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setShowProjects((v) => !v)}
-                    aria-expanded={showProjects}
-                    className="flex items-center gap-1"
-                  >
-                    <span className="t-body">Read Projects</span>
-                    <ChevronDown color="rgb(0, 0, 0)" />
-                  </button>
-
-                  {showProjects && (
-                    <div className="absolute bottom-full right-0 z-10 mb-2 flex w-[280px] flex-col border border-border bg-white shadow-lg">
-                      {personProjects.map((p) => (
-                        <Link
-                          key={p.slug}
-                          href={`/projects/${p.slug}`}
-                          onClick={() => setShowProjects(false)}
-                          className="flex items-start gap-3 border-b border-border p-3 last:border-b-0 hover:bg-offwhite"
-                        >
-                          {p.images[0] && (
-                            <img
-                              src={p.images[0].src}
-                              alt={p.images[0].alt || p.title}
-                              className="h-12 w-12 shrink-0 bg-lightgrey object-cover"
-                            />
-                          )}
-                          <span className="flex flex-col items-start gap-[2px]">
-                            <span className="t-body">{p.title}</span>
-                            <span className="t-body line-clamp-2 opacity-70">
-                              {p.shortOverview}
-                            </span>
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                project && (
-                  <Link
-                    href={`/projects/${project.slug}`}
-                    className="flex shrink-0 items-center gap-1"
-                  >
-                    <span className="t-body">Read full project</span>
-                    <ArrowRight color="rgb(0, 0, 0)" />
-                  </Link>
-                )
+              {project && (
+                <Link
+                  href={`/projects/${project.slug}`}
+                  className="flex shrink-0 items-center gap-1"
+                >
+                  <span className="t-body">Read full project</span>
+                  <ArrowRight color="rgb(0, 0, 0)" />
+                </Link>
               )}
             </figcaption>
           </motion.div>
@@ -200,11 +153,11 @@ export default function Testimonials({ projects = [] }: { projects?: Project[] }
       </div>
 
       {/* Right — sticky outro CTA. The outer column has to span the full
-          row height (matching Left and Middle's h-[631px]) for the inner
-          card's `sticky` to have anywhere to go — capped at the card's own
-          280px, as this was, leaves no scroll distance for it to stick
-          through, so it never visibly moves. */}
-      <div className="flex flex-col items-start overflow-hidden desktop:h-[631px]">
+          row height (matching Left and Middle's min-h-[631px]) for the
+          inner card's `sticky` to have anywhere to go — capped at the
+          card's own 280px, as this was, leaves no scroll distance for it
+          to stick through, so it never visibly moves. */}
+      <div className="flex flex-col items-start overflow-hidden desktop:min-h-[631px]">
         <div className="z-[1] flex h-[280px] w-full flex-col items-start justify-between gap-[10px] overflow-hidden border-b border-border bg-white p-6 desktop:sticky desktop:top-12">
           <p className="t-body">{TESTIMONIALS.outro}</p>
           <Button
