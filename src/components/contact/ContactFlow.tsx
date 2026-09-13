@@ -12,21 +12,21 @@ import type { Slot } from "@/lib/contact/booking";
  * submitting creates a real crm.lead and calendar.event in Odoo (see
  * lib/contact/booking.ts and app/contact/actions.ts).
  *
- * Step 01 is a calendar (pick a date) beside that date's own time list —
+ * Step 01 is a calendar (pick a date), then that date's own time list —
  * one date's times, not every open day's times poured into one long
- * scroll. A date with nothing open — a weekend, or a day Isaiah has
- * blocked by putting a busy calendar.event across business hours in Odoo
- * — just isn't clickable; there is no separate "blocked day" concept to
- * manage here, since a full day with no free slot already renders that
- * way on its own.
+ * scroll, and shown in place of the calendar rather than squeezed beside
+ * it. A date with nothing open — a weekend, or a day Isaiah has blocked by
+ * putting a busy calendar.event across business hours in Odoo — just isn't
+ * clickable; there is no separate "blocked day" concept to manage here,
+ * since a full day with no free slot already renders that way on its own.
  *
- * Same three-step grammar as CheckoutFlow (step markers, a sticky left
- * panel, black/yellow panels on the right) so this reads as part of the
- * same site rather than a bolted-on widget, but pinned to a single 100vh
- * panel that sits directly above the footer rather than flowing the page
- * taller — a scheduler is something you finish in one sitting on one
- * screen, not something to scroll a full page for. Each side scrolls
- * internally if its content ever needs more room than the viewport gives.
+ * Same two-column grammar as CheckoutFlow (step markers in a sticky left
+ * panel, offwhite/yellow panels on the right, flowing the page to whatever
+ * height a step actually needs) rather than pinned to one 100vh panel —
+ * that used to force the calendar and the "your details" form into a
+ * fixed viewport slot regardless of their real content height, which is
+ * exactly what left the gray "Pick a time" card with dead space below a
+ * cramped calendar, and made "Your details" scroll inside its own box.
  *
  * Times (and the calendar's own "today") are read in whatever timezone
  * the visitor's own browser reports (Intl.DateTimeFormat / toLocaleString)
@@ -126,12 +126,15 @@ export default function ContactFlow({
     [mounted]
   );
 
-  // Defaults to the earliest open date, once the client has resolved what
-  // "today" actually is — see the file header on why this waits for mount.
+  // Opens the calendar on the month of the earliest open date, once the
+  // client has resolved what "today" actually is — see the file header on
+  // why this waits for mount. The date itself is left unpicked: the
+  // calendar shows first, and picking a day is what swaps it for that
+  // day's own time list.
   useEffect(() => {
     if (!mounted || availableDateKeys.length === 0) return;
-    setSelectedDateKey((cur) => (cur && slotsByDate.has(cur) ? cur : availableDateKeys[0]));
     setViewMonth((cur) => cur ?? new Date(availableDateKeys[0]));
+    setSelectedDateKey((cur) => (cur && slotsByDate.has(cur) ? cur : null));
   }, [mounted, availableDateKeys, slotsByDate]);
 
   const earliestDate = availableDateKeys.length ? new Date(availableDateKeys[0]) : null;
@@ -195,68 +198,65 @@ export default function ContactFlow({
   return (
     <section
       id="book-a-call"
-      className="flex w-full scroll-mt-12 flex-col border-t border-border tablet:h-screen tablet:flex-row"
+      className="grid w-full scroll-mt-12 grid-cols-1 border-t border-border tablet:grid-cols-2"
     >
-      {/* Left — where you are. Full-height split (h-full inside a shared
-          h-screen row) only applies from tablet up: on mobile the section
-          isn't height-capped at all, so this and the step panel below just
-          stack and take their own natural height — h-full on both inside a
-          forced h-screen would each try to claim the whole viewport,
-          pushing the actual time picker entirely off-screen. */}
-      <div className="flex w-full shrink-0 flex-col justify-between gap-10 border-b border-border bg-white p-6 tablet:h-full tablet:w-[380px] tablet:overflow-y-auto tablet:border-r tablet:border-b-0 desktop:p-10">
-        <div className="flex flex-col items-start gap-10">
-          <div className="flex flex-col items-start gap-3">
-            <span className="t-tagline flex items-center gap-[6px]">
-              <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
-              Get In Touch
-            </span>
-            <h1 className="t-h2">Book a call</h1>
-            <p className="t-body text-lightblack">
-              Straight onto the calendar — no back-and-forth over email to find a time.
-            </p>
-          </div>
+      {/* Left — where you are, sticky like CheckoutFlow's own left column */}
+      <div className="z-[1] tablet:h-full">
+        <div className="flex min-h-[380px] w-full flex-col justify-between gap-10 border-r border-b border-border bg-white p-6 tablet:sticky tablet:top-12 desktop:p-10">
+          <div className="flex flex-col items-start gap-10">
+            <div className="flex flex-col items-start gap-3">
+              <span className="t-tagline flex items-center gap-[6px]">
+                <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
+                Get In Touch
+              </span>
+              <h1 className="t-h2">Book a call</h1>
+              <p className="t-body text-lightblack">
+                Straight onto the calendar — no back-and-forth over email to find a time.
+              </p>
+            </div>
 
-          <ol className="flex w-full flex-col items-start gap-3">
-            {STEPS.map((s, i) => {
-              const state = i === step ? "current" : i < step ? "done" : "todo";
-              return (
-                <li key={s.n} className="flex items-center gap-[6px]">
-                  <span
-                    aria-hidden="true"
-                    className={`block h-[10px] w-[10px] shrink-0 ${
-                      state === "todo" ? "border border-border bg-transparent" : "bg-yellow"
-                    }`}
-                  />
-                  <span className="t-body-s">{s.n}</span>
-                  <span className={`t-body ${state === "todo" ? "text-lightblack" : "text-black"}`}>
-                    {s.label}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-
-        {selected && step < 2 && (
-          <div className="flex w-full flex-col items-start gap-2 border-t border-border pt-5">
-            <span className="t-button">Selected time</span>
-            <span className="t-body">
-              {new Date(selected.startIso).toLocaleDateString(undefined, {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
+            <ol className="flex w-full flex-col items-start gap-3">
+              {STEPS.map((s, i) => {
+                const state = i === step ? "current" : i < step ? "done" : "todo";
+                return (
+                  <li key={s.n} className="flex items-center gap-[6px]">
+                    <span
+                      aria-hidden="true"
+                      className={`block h-[10px] w-[10px] shrink-0 ${
+                        state === "todo" ? "border border-border bg-transparent" : "bg-yellow"
+                      }`}
+                    />
+                    <span className="t-body-s">{s.n}</span>
+                    <span className={`t-body ${state === "todo" ? "text-lightblack" : "text-black"}`}>
+                      {s.label}
+                    </span>
+                  </li>
+                );
               })}
-            </span>
-            <span className="t-body-s text-lightblack">
-              {timeLabel(selected.startIso)}–{timeLabel(selected.endIso)}
-              {timezone ? ` · ${timezone}` : ""}
-            </span>
+            </ol>
           </div>
-        )}
+
+          {selected && step < 2 && (
+            <div className="flex w-full flex-col items-start gap-2 border-t border-border pt-5">
+              <span className="t-button">Selected time</span>
+              <span className="t-body">
+                {new Date(selected.startIso).toLocaleDateString(undefined, {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </span>
+              <span className="t-body-s text-lightblack">
+                {timeLabel(selected.startIso)}–{timeLabel(selected.endIso)}
+                {timezone ? ` · ${timezone}` : ""}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Right — the active step */}
-      <div className="flex w-full flex-col items-start tablet:h-full tablet:overflow-y-auto">
+      <div className="flex flex-col items-start">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -268,7 +268,7 @@ export default function ContactFlow({
           >
             {/* -------------------------------------------------- 01. time */}
             {step === 0 && (
-              <div className="flex min-h-full w-full flex-col items-start gap-8 bg-offwhite p-6 desktop:p-10">
+              <div className="flex min-h-[380px] w-full flex-col items-start gap-8 border-b border-border bg-offwhite p-6 desktop:p-10">
                 <div className="flex w-full flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-[6px]">
                     <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
@@ -307,9 +307,11 @@ export default function ContactFlow({
                       Shown in your local time{timezone ? ` — ${timezone}` : ""}.
                     </p>
 
-                    <div className="flex w-full flex-col items-start gap-10 tablet:flex-row">
-                      {/* Calendar */}
-                      <div className="flex w-full flex-col items-start gap-4 tablet:w-[320px] tablet:shrink-0">
+                    {selectedDateKey === null ? (
+                      /* Calendar — shown alone; picking a day swaps this
+                         whole area for that day's own time list below,
+                         rather than squeezing both in side by side. */
+                      <div className="flex w-full max-w-[420px] flex-col items-start gap-4">
                         <div className="flex w-full items-center justify-between">
                           <span className="t-h5">
                             {viewMonth?.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
@@ -351,7 +353,6 @@ export default function ContactFlow({
                               if (!cell) return <span key={`blank-${i}`} aria-hidden="true" />;
                               const key = dateKey(cell);
                               const available = slotsByDate.has(key);
-                              const isSelected = key === selectedDateKey;
                               return (
                                 <button
                                   key={key}
@@ -359,11 +360,9 @@ export default function ContactFlow({
                                   disabled={!available}
                                   onClick={() => setSelectedDateKey(key)}
                                   className={`t-body-s aspect-square w-full transition-colors duration-150 ${
-                                    isSelected
-                                      ? "bg-yellow text-black"
-                                      : available
-                                        ? "border border-black bg-white text-black hover:bg-yellow"
-                                        : "text-lightblack opacity-40"
+                                    available
+                                      ? "border border-black bg-white text-black hover:bg-yellow"
+                                      : "text-lightblack opacity-40"
                                   }`}
                                 >
                                   {cell.getDate()}
@@ -372,18 +371,25 @@ export default function ContactFlow({
                             })}
                         </div>
                       </div>
-
-                      {/* Times for the selected date */}
-                      <div className="flex w-full flex-1 flex-col items-start gap-3">
-                        <span className="t-button">
-                          {selectedDateKey
-                            ? new Date(selectedDateKey).toLocaleDateString(undefined, {
-                                weekday: "long",
-                                month: "long",
-                                day: "numeric",
-                              })
-                            : "Pick a date"}
-                        </span>
+                    ) : (
+                      /* Times for the chosen date, in place of the calendar */
+                      <div className="flex w-full flex-col items-start gap-3">
+                        <div className="flex w-full flex-wrap items-center justify-between gap-4">
+                          <span className="t-button">
+                            {new Date(selectedDateKey).toLocaleDateString(undefined, {
+                              weekday: "long",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDateKey(null)}
+                            className="t-body-s underline underline-offset-4"
+                          >
+                            ‹ Change date
+                          </button>
+                        </div>
                         {selectedDaySlots.length === 0 ? (
                           <p className="t-body-s text-lightblack">Nothing open this day.</p>
                         ) : (
@@ -401,7 +407,7 @@ export default function ContactFlow({
                           </div>
                         )}
                       </div>
-                    </div>
+                    )}
                   </>
                 )}
 
@@ -417,7 +423,7 @@ export default function ContactFlow({
             {step === 1 && selected && (
               <form
                 onSubmit={toReview}
-                className="flex min-h-full w-full flex-col items-start gap-8 bg-black p-6 text-white desktop:p-10"
+                className="flex min-h-[380px] w-full flex-col items-start gap-8 border-b border-border bg-offwhite p-6 desktop:p-10"
               >
                 <div className="flex items-center gap-[6px]">
                   <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-yellow" />
@@ -501,7 +507,7 @@ export default function ContactFlow({
 
             {/* ----------------------------------------------- 03. done */}
             {step === 2 && confirmedIso && (
-              <div className="flex min-h-full w-full flex-col items-start gap-8 bg-yellow p-6 desktop:p-10">
+              <div className="flex min-h-[380px] w-full flex-col items-start gap-8 border-b border-border bg-yellow p-6 desktop:p-10">
                 <div className="flex items-center gap-[6px]">
                   <span aria-hidden="true" className="block h-[10px] w-[10px] shrink-0 bg-black" />
                   <h2 className="t-button">Confirmed</h2>
