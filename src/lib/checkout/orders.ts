@@ -11,7 +11,6 @@ import {
   PAYSTACK_PUBLIC_KEY,
 } from "./paystack";
 import { sendOrderConfirmationEmail } from "./receipt-email";
-import { notifyPartner } from "@/lib/notifications";
 
 /**
  * The Odoo side of the cart checkout.
@@ -299,12 +298,6 @@ export async function readOrderForConfirmation(orderId: number): Promise<Confirm
  * fails on its own (Odoo Online's rate limit is a real, observed cause —
  * see the README "Odoo integration" trade-off note) degrades to a plainer
  * email instead of silently cancelling it outright.
- *
- * Also posts an in-app notification (the header bell) to the order's own
- * partner — independent of the email above, and of whether it actually
- * sent: this instance has no outgoing mail server configured yet (see
- * lib/auth/accounts.ts), so the bell is what a customer with an account
- * actually sees today, email or not.
  */
 async function notifyOrderConfirmed(orderId: number): Promise<void> {
   let order: ConfirmedOrder | null;
@@ -328,13 +321,6 @@ async function notifyOrderConfirmed(orderId: number): Promise<void> {
   }
 
   await sendOrderConfirmationEmail(order, catalogue);
-  await notifyPartner(
-    order.partnerId,
-    `Order ${order.reference} confirmed`,
-    order.amountTotal > 0
-      ? `Payment of ${order.currencyCode} ${order.amountTotal.toLocaleString("en-GB")} is on file. Your files are ready in your account.`
-      : "Your order is confirmed and your files are ready in your account."
-  );
 }
 
 /** Find the contact for this email, or make one. */
