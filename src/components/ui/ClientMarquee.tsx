@@ -5,48 +5,115 @@
  * node Frame13, tEk_My_jb: horizontal, gap 40px, overflow clip, tiles at
  * 85.465 x 49 and opacity 0.8).
  *
- * Now carries the core stack (Next.js, React.js, Odoo, Excel) as
- * icon + wordmark tiles instead of client names. Every icon shares the
- * same 24x24 viewBox and stroke weight so the row reads at a uniform
- * height regardless of glyph. The track is rendered twice and translated
- * by exactly -50%, so the seam lands on an identical frame and the loop
- * is invisible.
+ * Carries the stack across finance (Excel, Odoo), design (Figma), and
+ * development (Python, TypeScript, React.js, Next.js) as icon-only tiles
+ * — real brand marks, no label text. Every tile is the same fixed height
+ * (h-8) so the row reads evenly regardless of a given logo's native
+ * aspect ratio. The track is rendered twice and translated by exactly
+ * -50%, so the seam lands on an identical frame and the loop is
+ * invisible.
  */
-type IconName = "nextjs" | "react" | "odoo" | "excel";
+type IconName = "excel" | "odoo" | "figma" | "python" | "typescript" | "react" | "nextjs";
 
 function Icon({ name }: { name: IconName }) {
   switch (name) {
-    case "nextjs":
+    case "excel":
       return (
-        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.4" />
-          <text x="12" y="16" textAnchor="middle" fontSize="10.5" fontWeight="700" fill="currentColor">
-            N
+        <svg viewBox="0 0 48 48" className="h-8 w-auto shrink-0" aria-hidden="true">
+          <path d="M4 10a6 6 0 0 1 6-6h13v40H10a6 6 0 0 1-6-6V10Z" fill="#107C41" />
+          <path d="M23 4h15a6 6 0 0 1 6 6v9H23V4Z" fill="#21A366" />
+          <path d="M23 19h21v9H23v-9Z" fill="#33C481" />
+          <path d="M23 28h21v10a6 6 0 0 1-6 6H23V28Z" fill="#185C37" />
+          <text x="14" y="29" textAnchor="middle" fontSize="15" fontWeight="700" fontFamily="Arial, sans-serif" fill="#ffffff">
+            X
+          </text>
+        </svg>
+      );
+    case "odoo":
+      return (
+        <svg viewBox="0 0 919 495" className="h-8 w-auto shrink-0" aria-hidden="true">
+          <g fill="none">
+            <path
+              fill="#8F8F8F"
+              d="M695 346c-41.421 0-75-33.579-75-75s33.579-75 75-75 75 33.579 75 75-33.579 75-75 75zm0-31c24.3 0 44-19.7 44-44s-19.7-44-44-44-44 19.7-44 44 19.7 44 44 44zm-157 31c-41.421 0-75-33.579-75-75s33.579-75 75-75 75 33.579 75 75-33.579 75-75 75zm0-31c24.3 0 44-19.7 44-44s-19.7-44-44-44-44 19.7-44 44 19.7 44 44 44zm-82-45c0 41.935-33.592 76-75.009 76C339.575 346 306 312.005 306 270.07c0-41.936 30.5-74.07 74.991-74.07 16.442 0 31.647 3.496 44.007 12.58l.002-43.49c0-8.334 7.27-15.09 15.5-15.09 8.228 0 15.5 6.762 15.5 15.09V270zm-75 45c24.3 0 44-19.7 44-44s-19.7-44-44-44-44 19.7-44 44 19.7 44 44 44z"
+            />
+            <path
+              fill="#875A7B"
+              d="M224 346c-41.421 0-75-33.579-75-75s33.579-75 75-75 75 33.579 75 75-33.579 75-75 75zm0-31c24.3 0 44-19.7 44-44s-19.7-44-44-44-44 19.7-44 44 19.7 44 44 44z"
+            />
+          </g>
+        </svg>
+      );
+    case "figma":
+      return (
+        <svg viewBox="0 0 38 57" className="h-8 w-auto shrink-0" aria-hidden="true">
+          <path
+            d="M19 28.5C19 23.2533 23.2533 19 28.5 19C33.7467 19 38 23.2533 38 28.5C38 33.7467 33.7467 38 28.5 38C23.2533 38 19 33.7467 19 28.5Z"
+            fill="#1ABCFE"
+          />
+          <path
+            d="M0 47.5C0 42.2533 4.25329 38 9.5 38H19V47.5C19 52.7467 14.7467 57 9.5 57C4.25329 57 0 52.7467 0 47.5Z"
+            fill="#0ACF83"
+          />
+          <path d="M19 0V19H28.5C33.7467 19 38 14.7467 38 9.5C38 4.25329 33.7467 0 28.5 0H19Z" fill="#FF7262" />
+          <path d="M0 9.5C0 14.7467 4.25329 19 9.5 19H19V0H9.5C4.25329 0 0 4.25329 0 9.5Z" fill="#F24E1E" />
+          <path
+            d="M0 28.5C0 33.7467 4.25329 38 9.5 38H19V19H9.5C4.25329 19 0 23.2533 0 28.5Z"
+            fill="#A259FF"
+          />
+        </svg>
+      );
+    case "python":
+      return (
+        <svg viewBox="0 0 130 130" className="h-8 w-auto shrink-0" aria-hidden="true">
+          <defs>
+            <linearGradient id="cm-py-blue" x1="26.65" x2="135.7" y1="20.6" y2="114.4" gradientTransform="matrix(.5625 0 0 .568 -9.4 -5.305)" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#5a9fd4" offset="0" />
+              <stop stopColor="#306998" offset="1" />
+            </linearGradient>
+            <linearGradient id="cm-py-yellow" x1="151" x2="112" y1="192.4" y2="137.3" gradientTransform="matrix(.5625 0 0 .568 -9.4 -5.305)" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#ffd43b" offset="0" />
+              <stop stopColor="#ffe873" offset="1" />
+            </linearGradient>
+          </defs>
+          <path
+            fill="url(#cm-py-blue)"
+            d="M60.51 6.398c-4.584 0.0213-8.961 0.4122-12.81 1.094-11.35 2.005-13.41 6.2-13.41 13.94v10.22h26.81v3.406h-26.81-10.06c-7.792 0-14.62 4.684-16.75 13.59-2.462 10.21-2.571 16.59 0 27.25 1.906 7.938 6.458 13.59 14.25 13.59h9.219v-12.25c0-8.85 7.657-16.66 16.75-16.66h26.78c7.455 0 13.41-6.138 13.41-13.62v-25.53c0-7.266-6.13-12.72-13.41-13.94-4.606-0.7667-9.385-1.115-13.97-1.094zm-14.5 8.219c2.77 0 5.031 2.299 5.031 5.125-2e-6 2.816-2.262 5.094-5.031 5.094-2.779-1e-6 -5.031-2.277-5.031-5.094-1e-6 -2.826 2.252-5.125 5.031-5.125z"
+          />
+          <path
+            fill="url(#cm-py-yellow)"
+            d="M91.23 35.05v11.91c0 9.231-7.826 17-16.75 17h-26.78c-7.336 0-13.41 6.278-13.41 13.62v25.53c0 7.266 6.319 11.54 13.41 13.62 8.487 2.496 16.63 2.947 26.78 0 6.75-1.954 13.41-5.888 13.41-13.62v-10.22h-26.78v-3.406h26.78 13.41c7.792 0 10.7-5.435 13.41-13.59 2.799-8.399 2.68-16.48 0-27.25-1.926-7.757-5.604-13.59-13.41-13.59h-10.06zm-15.06 64.66c2.779 3e-6 5.031 2.277 5.031 5.094-2e-6 2.826-2.252 5.125-5.031 5.125-2.77 0-5.031-2.299-5.031-5.125 2e-6 -2.816 2.262-5.094 5.031-5.094z"
+          />
+        </svg>
+      );
+    case "typescript":
+      return (
+        <svg viewBox="0 0 48 48" className="h-8 w-auto shrink-0" aria-hidden="true">
+          <rect x="2" y="2" width="44" height="44" rx="6" fill="#3178C6" />
+          <text x="24" y="31" textAnchor="middle" fontSize="19" fontWeight="700" fontFamily="Arial, sans-serif" fill="#ffffff">
+            TS
           </text>
         </svg>
       );
     case "react":
       return (
-        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="2.1" fill="currentColor" />
-          <ellipse cx="12" cy="12" rx="10" ry="4.3" stroke="currentColor" strokeWidth="1.2" />
-          <ellipse cx="12" cy="12" rx="10" ry="4.3" stroke="currentColor" strokeWidth="1.2" transform="rotate(60 12 12)" />
-          <ellipse cx="12" cy="12" rx="10" ry="4.3" stroke="currentColor" strokeWidth="1.2" transform="rotate(120 12 12)" />
+        <svg viewBox="0 0 24 24" className="h-8 w-auto shrink-0" aria-hidden="true">
+          <circle cx="12" cy="12" r="2.1" fill="#61DAFB" />
+          <g fill="none" stroke="#61DAFB" strokeWidth="1">
+            <ellipse cx="12" cy="12" rx="10" ry="4.3" />
+            <ellipse cx="12" cy="12" rx="10" ry="4.3" transform="rotate(60 12 12)" />
+            <ellipse cx="12" cy="12" rx="10" ry="4.3" transform="rotate(120 12 12)" />
+          </g>
         </svg>
       );
-    case "odoo":
+    case "nextjs":
       return (
-        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.4" />
-          <circle cx="15.5" cy="15.5" r="3" fill="currentColor" />
-        </svg>
-      );
-    case "excel":
-      return (
-        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" aria-hidden="true">
-          <rect x="3" y="2.5" width="14" height="19" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
-          <path d="M13 2.5v5h5" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-          <path d="M6.5 10.5 12.5 18M12.5 10.5 6.5 18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <svg viewBox="0 0 24 24" className="h-8 w-auto shrink-0" fill="none" aria-hidden="true">
+          <path
+            fill="#000000"
+            strokeWidth="0.25"
+            d="M19.965375 9.633075v0.755525h-1.623775V14.36325h-0.81195V10.3886h-1.657575v-0.755525h4.0933Zm0.1825 4.27955c0.0572 0 0.10725 0.0206 0.1496 0.0618 0.042925 0.0412 0.06435 0.090525 0.06495 0.148 -0.0006 0.039025 -0.0105 0.0748 -0.0303 0.106775 -0.02035 0.032525 -0.046175 0.058 -0.078675 0.076425 -0.0319 0.018975 -0.0671 0.028725 -0.105575 0.028725 -0.05945 0 -0.11005 -0.020575 -0.1524 -0.061775 -0.042325 -0.0412 -0.063275 -0.091075 -0.062725 -0.15015 -0.00055 -0.057475 0.0204 -0.1068 0.062725 -0.148 0.04235 -0.0412 0.09295 -0.0618 0.1524 -0.0618ZM4.055725 14.36325 1.06189 10.642175v3.7191H0.25V9.6311h1.01486L5.04715 14.327825l0.000075 -3.939225 -0.00035 -0.755525h4.093275v0.755525H5.8591v1.215375h2.638625v0.755525H5.8591v1.24825h3.28105v0.7555H4.055725Zm7.68655 -2.010975 0.5321 0.661575 -1.090325 1.354975H10.1185l1.623775 -2.01655Zm-0.558225 -2.717225 1.37375 1.70605 1.36945 -1.7008 1.06255 -0.00165 -1.900025 2.363125 1.903075 2.36345H13.92725L10.12155 9.63505h1.0625Zm10.34955 2.706625h0.359775v1.3861c-0.000525 0.1274 -0.0281 0.23635 -0.08195 0.32795 -0.05445 0.091625 -0.12985 0.16155 -0.22665 0.210875 -0.09625 0.048775 -0.20905 0.073725 -0.337225 0.073725 -0.1172 0 -0.222225 -0.02115 -0.31575 -0.06235 -0.093525 -0.041175 -0.1678 -0.102975 -0.22225 -0.1843 -0.05505 -0.0813 -0.082 -0.182675 -0.082 -0.3041h0.360375c0.000525 0.053125 0.012625 0.0992 0.035725 0.137675 0.023075 0.0385 0.054975 0.067775 0.095725 0.088375 0.0412 0.0206 0.088575 0.0309 0.1419 0.0309 0.057775 0 0.1073 -0.01195 0.147425 -0.036325 0.04015 -0.02385 0.070975 -0.059625 0.09245 -0.10735 0.020875 -0.04715 0.031925 -0.1057 0.03245 -0.175075v-1.3861Zm1.8401 0.542075c-0.008775 -0.084025 -0.0473 -0.1496 -0.1144 -0.196225 -0.0677 -0.047175 -0.155125 -0.070475 -0.262425 -0.070475 -0.07535 0 -0.140225 0.0114 -0.19415 0.033625 -0.053925 0.02275 -0.095725 0.0531 -0.12435 0.0916 -0.028575 0.038475 -0.0429 0.0824 -0.044025 0.131725 0 0.0412 0.0099 0.076975 0.029175 0.1068 0.01925 0.03035 0.045075 0.055825 0.07865 0.076425 0.033 0.02115 0.06985 0.038475 0.11005 0.052575 0.040675 0.0141 0.081425 0.026025 0.1221 0.035775l0.187575 0.046075c0.0754 0.01735 0.148575 0.040675 0.218425 0.070475 0.06985 0.029275 0.133125 0.066675 0.18865 0.111675 0.0556 0.045 0.0996 0.0992 0.13205 0.162625 0.03245 0.063425 0.048975 0.137675 0.048975 0.223325 0 0.115475 -0.0297 0.21685 -0.0897 0.30465 -0.05995 0.087275 -0.146325 0.155575 -0.25965 0.2049 -0.112775 0.0488 -0.249175 0.073725 -0.4098 0.073725 -0.15515 0 -0.290475 -0.02385 -0.40435 -0.07155 -0.1144 -0.04715 -0.20355 -0.11655 -0.267925 -0.207625 -0.06435 -0.09105 -0.099 -0.202175 -0.10395 -0.332825h0.3565c0.00495 0.0683 0.02695 0.125225 0.06435 0.1713 0.03795 0.045525 0.08745 0.07915 0.147975 0.1019 0.061075 0.022225 0.12925 0.033625 0.20465 0.033625 0.078675 0 0.147975 -0.011925 0.207925 -0.03525 0.0594 -0.0233 0.106175 -0.055825 0.13975 -0.0981 0.0341 -0.04175 0.051175 -0.091075 0.0517 -0.14745 -0.000525 -0.0515 -0.015975 -0.094325 -0.045675 -0.12795 -0.03025 -0.0336 -0.07205 -0.061775 -0.12545 -0.08455 -0.05385 -0.022775 -0.1166 -0.043375 -0.1881 -0.06125l-0.227725 -0.057475c-0.1645 -0.041725 -0.2949 -0.10515 -0.390075 -0.19025 -0.095675 -0.085125 -0.14305 -0.197875 -0.14305 -0.33935 0 -0.116 0.031925 -0.2179 0.09635 -0.3052 0.06375 -0.08725 0.15125 -0.155025 0.261825 -0.203275 0.111125 -0.048775 0.23655 -0.072625 0.37625 -0.072625 0.14195 0 0.26625 0.02385 0.37355 0.072625 0.10725 0.04825 0.19145 0.115475 0.252475 0.201125 0.061075 0.08565 0.092975 0.18375 0.09465 0.294875h-0.3488Z"
+          />
         </svg>
       );
   }
@@ -70,10 +137,9 @@ export default function ClientMarquee({
           <span
             key={`${c.name}-${i}`}
             aria-hidden="true"
-            className="t-h6 flex h-[49px] min-w-[85.465px] shrink-0 items-center gap-2 whitespace-nowrap opacity-80"
+            className="flex h-[49px] w-[85.465px] shrink-0 items-center justify-center opacity-80"
           >
             <Icon name={c.icon} />
-            {c.name}
           </span>
         ))}
       </div>

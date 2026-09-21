@@ -35,14 +35,18 @@ export const HERO = {
     "I work with people who treat design as a business decision, not a coat of paint applied at the end.",
   clientsLabel: "Highly Experienced With:",
   /**
-   * The core tools/stack, rendered as icon + wordmark tiles in the
-   * marquee. `icon` keys into the ICON map in ClientMarquee.tsx.
+   * The stack across finance, marketing, and design/dev, rendered as
+   * icon-only tiles in the marquee (no label text). `icon` keys into the
+   * ICON map in ClientMarquee.tsx.
    */
   clients: [
-    { name: "Next.js", icon: "nextjs" },
-    { name: "React.js", icon: "react" },
-    { name: "Odoo", icon: "odoo" },
     { name: "Excel", icon: "excel" },
+    { name: "Odoo", icon: "odoo" },
+    { name: "Figma", icon: "figma" },
+    { name: "Python", icon: "python" },
+    { name: "TypeScript", icon: "typescript" },
+    { name: "React.js", icon: "react" },
+    { name: "Next.js", icon: "nextjs" },
   ],
 } as const;
 
