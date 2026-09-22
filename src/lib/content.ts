@@ -33,20 +33,18 @@ export const HERO = {
   introCta: { label: "Get in Touch", href: "/#contact", newTab: false },
   clientsHeading:
     "I work with people who treat design as a business decision, not a coat of paint applied at the end.",
-  clientsLabel: "Highly Experienced With:",
+  clientsLabel: "Among My Clients:",
   /**
-   * The stack across finance, marketing, and design/dev, rendered as
-   * icon-only tiles in the marquee (no label text). `icon` keys into the
-   * ICON map in ClientMarquee.tsx.
+   * The five real 2025 clients. The template marqueed logo images; no logo
+   * files exist for these clients, so the same marquee carries their
+   * wordmarks as text instead of inventing or borrowing marks.
    */
   clients: [
-    { name: "Excel", icon: "excel" },
-    { name: "Odoo", icon: "odoo" },
-    { name: "Figma", icon: "figma" },
-    { name: "Python", icon: "python" },
-    { name: "TypeScript", icon: "typescript" },
-    { name: "React.js", icon: "react" },
-    { name: "Next.js", icon: "nextjs" },
+    { name: "KariKari" },
+    { name: "Southside Akwana Records" },
+    { name: "Veridian Tech Co." },
+    { name: "Kaktus Limited" },
+    { name: "Karitas Karisimbi Foundation" },
   ],
 } as const;
 
