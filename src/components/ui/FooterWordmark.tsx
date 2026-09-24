@@ -1,5 +1,5 @@
 import { Reveal } from "./Reveal";
-import { WORDMARK_PATH, WORDMARK_VIEWBOX } from "./Wordmark";
+import { WORDMARK_PATHS, WORDMARK_TRANSFORM, WORDMARK_VIEWBOX } from "./Wordmark";
 
 /**
  * FooterWordmark — the full-width mark that closes the footer, in the
@@ -20,7 +20,11 @@ export default function FooterWordmark() {
           role="img"
           aria-label="Kakitahi"
         >
-          <path d={WORDMARK_PATH} fill="rgb(0, 0, 0)" />
+          <g transform={WORDMARK_TRANSFORM} fill="rgb(0, 0, 0)" stroke="none">
+            {WORDMARK_PATHS.map((d) => (
+              <path key={d} d={d} />
+            ))}
+          </g>
         </svg>
       </div>
     </Reveal>
